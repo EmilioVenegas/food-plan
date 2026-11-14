@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f7f9">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Food plan</title>
+<style>
+:root {
+  --bg: #f6f7f9;
+  --card: #fff;
+  --card2: #f1f4f6;
+  --line: #dde2e8;
+  --fg: #16191d;
+  --dim: #5f6b78;
+  --track: #e3e7ec;
+  --good: #2f8a4c;
+  --warn: #9a6a12;
+  --pad: 13px;
+  --hue: 145;
+  --accent: hsl(var(--hue) 42% 38%);
+  --accent-dim: hsl(var(--hue) 45% 90%);
+  --tabh: 58px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+svg[hidden] { display: none; }
+body {
+  font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding-bottom: calc(var(--tabh) + env(safe-area-inset-bottom));
+}
+
+/* ---------- header ---------- */
+header {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  padding: 10px var(--pad) 11px;
+}
+header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+  background: var(--accent);
+}
+h1 {
+  font-size: 11px; margin: 0 0 8px; color: var(--dim);
+  font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+  display: flex; justify-content: space-between; gap: 14px;
+}
+h1 span { flex: none; }
+h1 em { font-style: normal; color: var(--accent); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.update {
+  display: block; width: 100%; padding: 9px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  color: #fff; background: var(--accent); border: none; border-radius: 10px;
+}
+main { padding: var(--pad); max-width: 900px; margin: 0 auto; }
+
+/* ---------- bottom tabs ---------- */
+nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: flex; height: calc(var(--tabh) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--line);
+}
+nav button {
+  position: relative;
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+  background: none; color: var(--dim); border: none; cursor: pointer;
+  transition: color .12s;
+}
+nav button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+nav button.on { color: var(--accent); }
+nav button.on svg { stroke-width: 2.2; }
+.badge {
+  position: absolute; top: 5px; left: calc(50% + 5px); min-width: 17px; height: 17px; padding: 0 5px;
+  color: #fff; background: var(--accent); border-radius: 9px;
+  font-size: 10.5px; line-height: 17px; letter-spacing: 0; text-align: center;
+}
+.badge:empty { display: none; }
+
+select, .btn {
+  width: 100%; padding: 12px; font: inherit; font-weight: 650;
+  color: var(--fg); background: var(--card);
+  border: 1px solid var(--line); border-radius: 11px;
+  transition: border-color .12s;
+}
+select:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn { cursor: pointer; color: var(--dim); font-size: 14px; }
+.btn + .btn { margin-top: 8px; }
+select.adder { font-size: 14px; font-weight: 500; color: var(--dim); }
+
+/* ---------- stat gauges ---------- */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 11px 0; }
+.stat {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 11px; padding: 8px 9px 9px;
+}
+.stat b { display: block; font-size: 18px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+.stat .track {
+  position: relative; height: 4px; margin-top: 7px;
+  background: var(--track); border-radius: 3px; overflow: hidden;
+}
+.stat .track i {
+  position: absolute; inset: 0 auto 0 0; width: calc(var(--pct) * 100%);
+  background: var(--good); border-radius: 3px;
+  transition: width .2s ease-out;
+}
+.stat.warn b { color: var(--warn); }
+.stat.warn .track i { background: var(--warn); }
+.stat .track u {
+  position: absolute; top: -2px; bottom: -2px; left: calc(var(--floor) * 100%);
+  width: 2px; background: var(--fg); opacity: .45; text-decoration: none;
+}
+.stat.wide { grid-column: span 3; display: flex; align-items: baseline; gap: 8px; }
+.stat.wide b { font-size: 15px; }
+
+/* ---------- meal cards ---------- */
+.meal { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin: 9px 0; overflow: hidden; }
+.meal > h3 {
+  margin: 0; padding: 8px 11px; font-size: 11px; letter-spacing: .07em; text-transform: uppercase;
+  background: var(--card2); color: var(--dim);
+  display: flex; align-items: center; gap: 8px;
+}
+.meal > h3 em { font-style: normal; color: var(--fg); letter-spacing: 0; text-transform: none; font-size: 12px; margin-left: auto; font-variant-numeric: tabular-nums; }
+.meal > h3 svg { width: 15px; height: 15px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.row {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 7px 11px; border-top: 1px solid var(--line); font-size: 15px;
+}
+.ico {
+  flex: 0 0 30px; height: 30px; align-self: center; display: grid; place-items: center;
+  font-style: normal; font-size: 18px; line-height: 1; border-radius: 9px; background: var(--accent-dim);
+}
+.row:has(.ico) { align-items: center; }
+.extras { margin: 2px 0 8px; border: 1px dashed var(--line); border-radius: 9px; padding: 0 10px; background: var(--card); }
+.extras summary { cursor: pointer; padding: 7px 0; font-size: 13px; font-weight: 600; color: var(--accent); }
+.extras ul { margin: 0 0 8px; padding-left: 18px; font-size: 13.5px; columns: 2; column-gap: 16px; }
+.extras li { break-inside: avoid; margin: 2px 0; }
+.row:first-of-type { border-top: none; }
+.row span { flex: 1; min-width: 0; }
+.row b { width: 72px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.row small, label.check small, .item small { color: var(--dim); display: block; font-size: 12px; }
+.note { color: var(--dim); font-size: 13.5px; margin: 10px 0; }
+.note strong { color: var(--fg); }
+.alert {
+  padding: 9px 11px; color: var(--fg); border: 1px solid var(--warn); border-radius: 11px;
+  background: color-mix(in srgb, var(--warn) 9%, var(--card));
+}
+.how { border-top: 1px solid var(--line); padding: 2px 11px 4px; background: var(--card2); }
+.how p { margin: 8px 0; font-size: 14px; line-height: 1.45; }
+.notecard { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin: 8px 0; padding: 0 11px; }
+.notecard summary { cursor: pointer; padding: 10px 0; font-weight: 600; font-size: 14px; }
+.notecard p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.45; }
+
+/* ---------- shop ---------- */
+.bar { height: 3px; background: var(--track); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+.bar i { display: block; height: 100%; width: calc(var(--pct) * 100%); background: var(--accent); transition: width .18s ease-out; }
+label.check {
+  display: flex; gap: 11px; align-items: center; padding: 10px 11px;
+  border-top: 1px solid var(--line); cursor: pointer; font-size: 15px;
+  transition: background .12s;
+}
+label.check:first-of-type { border-top: none; }
+label.check:active { background: var(--card2); }
+label.check input { width: 21px; height: 21px; accent-color: var(--accent); flex: none; }
+label.check span { flex: 1; min-width: 0; }
+label.check.done > span { text-decoration: line-through; color: var(--dim); }
+label.check .price { flex: none; text-align: right; font-variant-numeric: tabular-nums; color: var(--dim); }
+label.check small.warn { color: var(--warn); }
+.aisle {
+  padding: 9px 11px 3px; border-top: 1px solid var(--line);
+  color: var(--dim); font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+}
+
+/* product rows with a counter: Shop pantry check, Spices */
+.item {
+  display: grid; grid-template-columns: 1fr auto;
+  grid-template-areas: "name step" "need need" "buy buy" "warn warn";
+  column-gap: 10px; align-items: center; padding: 8px 11px 9px;
+  border-top: 1px solid var(--line); transition: background .12s;
+}
+.item:has(.ico) {
+  grid-template-columns: 30px 1fr auto;
+  grid-template-areas: "ico name step" "ico need need" ". buy buy" ". warn warn";
+}
+.meal > h3 + .item { border-top: none; }
+.item:has(.step:not(.zero)) { background: color-mix(in srgb, var(--accent-dim) 45%, var(--card)); }
+.item .ico { grid-area: ico; align-self: start; margin-top: 3px; }
+.item .name { grid-area: name; font-size: 15px; }
+.item .need { grid-area: need; margin-top: 3px; font-size: 12.5px; }
+.item .need b { color: var(--fg); font-weight: 600; }
+.item .step { grid-area: step; }
+.item .buy { grid-area: buy; margin-top: 3px; color: var(--accent); font-weight: 600; }
+.item .warn { grid-area: warn; color: var(--warn); }
+.item small:empty { display: none; }
+
+.step {
+  display: flex; align-items: center; background: var(--card); border: 1px solid var(--accent); border-radius: 999px;
+  user-select: none; -webkit-user-select: none;
+}
+.step button {
+  width: 36px; height: 36px; padding: 0; font: inherit; font-size: 21px; line-height: 1;
+  color: var(--accent); background: none; border: none; border-radius: 50%; cursor: pointer;
+  touch-action: manipulation; /* rapid taps count up instead of zooming the page */
+}
+.step button:active { background: var(--accent-dim); }
+.step output { min-width: 24px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.step.zero { border-color: var(--line); }
+.step.zero output { color: var(--dim); font-weight: 500; }
+.step.zero button:first-child { opacity: .3; }
+
+.days {
+  display: flex; align-items: center; gap: 10px; margin: 10px 0; padding: 8px 11px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; font-size: 15px; font-weight: 600;
+}
+.days span { flex: 1; min-width: 0; }
+.days small { display: block; color: var(--dim); font-size: 12px; font-weight: 400; }
+
+/* running total of the list; floats above the tab bar while the list is longer than the screen */
+.cartbar {
+  position: sticky; bottom: calc(var(--tabh) + env(safe-area-inset-bottom) + 8px); z-index: 5;
+  display: flex; align-items: center; gap: 10px; margin: 10px 0; padding: 8px 8px 8px 14px;
+  color: #fff; background: var(--accent); border-radius: 14px; box-shadow: 0 6px 18px rgb(0 0 0 / .2);
+}
+.cartbar span { flex: 1; min-width: 0; }
+.cartbar b { display: block; font-size: 18px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.cartbar small { display: block; font-size: 12px; opacity: .85; }
+.cartbar button {
+  flex: none; padding: 10px 14px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  color: var(--accent); background: #fff; border: none; border-radius: 10px;
+}
+.cartbar button:disabled { opacity: .5; cursor: default; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.seg button {
+  flex: 1 1 auto; padding: 9px 10px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  color: var(--dim); background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+}
+.seg button.on { color: var(--fg); background: var(--accent-dim); border-color: var(--accent); }
+
+/* ---------- compare ---------- */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 7px 5px; text-align: right; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--dim); font-size: 10px; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; white-space: nowrap; }
+tbody tr { cursor: pointer; transition: background .12s; }
+tbody tr:active { background: var(--card2); }
+tr.base { background: var(--accent-dim); }
+tr.cur td.day { font-weight: 700; }
+td:not(.day) { white-space: nowrap; }
+td.day { display: flex; align-items: baseline; gap: 7px; }
+td.day::before {
+  content: ""; width: 8px; height: 8px; border-radius: 50%; flex: none;
+  background: hsl(var(--rowhue) 50% 55%);
+}
+td.neg { color: var(--good); }
+td.pos { color: var(--warn); }
+.foot { color: var(--dim); font-size: 11.5px; margin: 14px 0 0; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+@media print {
+  :root { --bg: #fff; --card: #fff; --card2: #fff; --line: #bbb; --fg: #000; --dim: #444; --tabh: 0px; }
+  header::after, nav, .notecard, .seg, .foot, select, .stats, .btn, .days, .cartbar, .step button, .alert, .update { display: none; }
+  .step { border: none; }
+  body { font-size: 11pt; padding: 0; }
+  header { position: static; backdrop-filter: none; }
+  .meal { break-inside: avoid; }
+  label.check input { -webkit-appearance: none; appearance: none; border: 1px solid #000; border-radius: 3px; }
+}
+
+</style>
+</head>
+<body>
+<svg hidden xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-today" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></symbol>
+  <symbol id="i-treat" viewBox="0 0 24 24"><path d="M4 19h16v-5H4Z"/><path d="M5 14c0-3.5 3-5 7-5s7 1.5 7 5"/><path d="M12 9V5.5"/></symbol>
+  <symbol id="i-shop" viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="i-compare" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></symbol>
+  <symbol id="i-spice" viewBox="0 0 24 24"><path d="M8 3h8v3H8z"/><path d="M7 6h10l1 3v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9Z"/><path d="M10 13h4M10 16h4"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/></symbol>
+  <symbol id="i-apple" viewBox="0 0 24 24"><path d="M12 8c-4 0-6 2.7-6 6.2C6 18 8.7 21 12 21s6-3 6-6.8C18 10.7 16 8 12 8Z"/><path d="M12 8c0-2 1.3-4 3.5-4.5"/></symbol>
+  <symbol id="i-pan" viewBox="0 0 24 24"><path d="M3 13h13a0 0 0 0 1 0 0 6 6 0 0 1-6 6H9a6 6 0 0 1-6-6Z"/><path d="M16 13h5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
+</svg>
+<header>
+  <h1><span>Food plan</span><em id="crumb"></em></h1>
+</header>
+<main id="app"></main>
+<nav>
+  <button data-view="today" class="on"><svg><use href="#i-today"/></svg>Today</button>
+  <button data-view="shop"><svg><use href="#i-shop"/></svg>Shop</button>
+  <button data-view="spices"><svg><use href="#i-spice"/></svg>Spices</button>
+  <button data-view="treats"><svg><use href="#i-treat"/></svg>Treats</button>
+  <button data-view="compare"><svg><use href="#i-compare"/></svg>Compare</button>
+</nav>
+<script type="module">
+const FOODS = {"chicken":{"label":"Hähnchenbrustfilet","kcal":110,"protein":23,"fiber":0,"eurPerKg":9.99,"grounding":"CONFIRMED","pack":{"label":"Hähnchenbrustfilet Teilstück 1kg","price":9.99,"edible":1000,"aisle":"meat","keeps":5,"freeze":true},"main":true},"porkMinute":{"label":"Schweine-Minutensteaks","kcal":110,"protein":21.5,"fiber":0,"eurPerKg":7.48,"grounding":"INFERENCE","pack":{"label":"Schweine-Minutensteaks 400g","price":2.99,"edible":400,"aisle":"meat","keeps":4,"freeze":true},"main":true},"porkSchnitzel":{"label":"porkSchnitzel","kcal":110,"protein":21.5,"fiber":0,"eurPerKg":9.18,"grounding":"INFERENCE","main":true},"seelachs":{"label":"Alaska Seelachs (TK)","kcal":65,"protein":15,"fiber":0,"eurPerKg":6.29,"grounding":"CONFIRMED","pack":{"label":"Alaska Seelachsfilets 1kg TK (GOLDEN SEAFOOD)","price":6.29,"edible":1000,"aisle":"frozen","keeps":180,"freeze":true},"main":true},"drumstick":{"label":"drumstick","kcal":172,"protein":18,"fiber":0,"eurPerKg":6.27,"grounding":"INFERENCE","main":true},"quark":{"label":"Magerquark","kcal":70,"protein":12.2,"fiber":0,"eurPerKg":2.38,"grounding":"CONFIRMED","pack":{"label":"Speisequark Magerstufe 500g (MILSANI)","price":1.19,"edible":500,"aisle":"dairy","keeps":18,"freeze":false}},"skyr":{"label":"Skyr","kcal":63,"protein":11,"fiber":0,"eurPerKg":2.58,"grounding":"INFERENCE","pack":{"label":"Skyr 500g (MILSANI)","price":1.29,"edible":500,"aisle":"dairy","keeps":18,"freeze":false}},"harzer":{"label":"harzer","kcal":125,"protein":30,"fiber":0,"eurPerKg":9.95,"grounding":"INFERENCE"},"eggs":{"label":"Eier","kcal":153,"protein":13,"fiber":0,"eurPerKg":4.23,"grounding":"CONFIRMED","pack":{"label":"Eier Bodenhaltung 18er (LANDFREUDE)","price":4.19,"edible":990,"aisle":"dairy","keeps":28,"freeze":false},"unit":{"grams":55,"name":"egg"}},"rolls":{"label":"Sonntagsbrötchen","kcal":256,"protein":8.5,"fiber":3.3,"eurPerKg":2.12,"grounding":"CONFIRMED","pack":{"label":"Sonntagsbrötchen 560g = 8 Stück (GOLDÄHREN)","price":1.19,"edible":560,"aisle":"bread","keeps":21,"freeze":true},"unit":{"grams":70,"name":"roll"},"bread":true},"proteinbrot":{"label":"Proteinbrot","kcal":266,"protein":21.7,"fiber":10.5,"eurPerKg":3.58,"grounding":"CONFIRMED","pack":{"label":"Proteinbrot 500g (GOLDÄHREN)","price":1.79,"edible":500,"aisle":"bread","keeps":10,"freeze":true},"unit":{"grams":50,"name":"slice"},"bread":true},"vollkorntoast":{"label":"Vollkorntoast","kcal":246,"protein":8.5,"fiber":6,"eurPerKg":1.78,"grounding":"CONFIRMED","pack":{"label":"Vollkorntoast 500g (GOLDÄHREN)","price":0.89,"edible":500,"aisle":"bread","keeps":10,"freeze":true},"unit":{"grams":25,"name":"slice"},"bread":true},"emmer":{"label":"Emmerflocken","kcal":330,"protein":11.2,"fiber":11.2,"eurPerKg":2.98,"grounding":"CONFIRMED","pack":{"label":"Bio-Emmerflocken 500g","price":1.49,"edible":500,"aisle":"dry","keeps":180,"freeze":false}},"pb":{"label":"Erdnusscreme","kcal":610,"protein":24.9,"fiber":7,"eurPerKg":5,"grounding":"INFERENCE","pack":{"label":"Erdnusscreme 340g (GRANDESSA)","price":1.7,"edible":340,"aisle":"dry","keeps":180,"freeze":false}},"oil":{"label":"Rapsöl","kcal":884,"protein":0,"fiber":0,"eurPerKg":2.78,"grounding":"INFERENCE","pack":{"label":"Natives Rapsöl 500ml (BELLASAN)","price":1.39,"edible":500,"aisle":"dry","keeps":180,"freeze":false},"liquid":true},"apple":{"label":"Tafeläpfel","kcal":52,"protein":0.3,"fiber":2.4,"eurPerKg":1.3,"grounding":"INFERENCE","pack":{"label":"Tafeläpfel 2kg Beutel (Aldi)","price":2.59,"edible":2000,"aisle":"produce","keeps":21,"freeze":false},"unit":{"grams":70,"name":"half-apple"}},"lentils":{"label":"Rote Linsen (dry)","kcal":378,"protein":25,"fiber":10.8,"eurPerKg":2.9,"grounding":"CONFIRMED","pack":{"label":"Bio-Hülsenfrüchte Rote Linsen 500g","price":1.45,"edible":500,"aisle":"dry","keeps":365,"freeze":false},"main":true},"veg":{"label":"veg mix","kcal":44.4,"protein":1.34,"fiber":2.03,"eurPerKg":1.247061011904762,"grounding":"INFERENCE","pack":{"label":"veg mix (onion/carrot/leek/tomato/garlic)","price":null,"edible":null}},"brathaehnchen":{"label":"TK Brathähnchen (edible meat)","kcal":200,"protein":20,"fiber":0,"eurPerKg":6.564102564102564,"grounding":"INFERENCE","pack":{"label":"TK Deutsches Brathähnchen 1,2kg (JACK'S FARM)","price":5.12,"edible":780,"aisle":"frozen","keeps":180,"freeze":true},"main":true},"kotelett":{"label":"Schweinekotelett (edible)","kcal":160,"protein":21,"fiber":0,"eurPerKg":8.017857142857142,"grounding":"INFERENCE","pack":{"label":"Schweinekoteletts 700g, Rückenkotelett","price":4.49,"edible":560,"aisle":"meat","keeps":4,"freeze":true},"main":true},"porkGulasch":{"label":"Schweinegulasch","kcal":120,"protein":21,"fiber":0,"eurPerKg":4.99,"grounding":"CONFIRMED","pack":{"label":"Gulasch vom Schwein XXL 1kg (MEINE METZGEREI)","price":4.99,"edible":1000,"aisle":"meat","keeps":3,"freeze":true},"main":true},"hackSchwein":{"label":"Schweine-Hackfleisch","kcal":234,"protein":18,"fiber":0,"eurPerKg":4.11,"grounding":"CONFIRMED","pack":{"label":"Schweine-Hackfleisch 800g (MEINE METZGEREI)","price":3.29,"edible":800,"aisle":"meat","keeps":1,"freeze":true},"main":true},"halbesHaehnchen":{"label":"halbesHaehnchen","kcal":190,"protein":19,"fiber":0,"eurPerKg":9.78,"grounding":"INFERENCE","main":true},"haehnInnen":{"label":"haehnInnen","kcal":110,"protein":23,"fiber":0,"eurPerKg":11.24,"grounding":"INFERENCE","main":true},"fischstaebchen":{"label":"fischstaebchen","kcal":200,"protein":12,"fiber":0.8,"eurPerKg":6.64,"grounding":"INFERENCE","main":true},"hering":{"label":"hering","kcal":180,"protein":14,"fiber":0,"eurPerKg":5.45,"grounding":"INFERENCE","main":true},"pasta":{"label":"pasta","kcal":350,"protein":12.5,"fiber":3,"eurPerKg":1.38,"grounding":"INFERENCE"},"mie":{"label":"mie","kcal":350,"protein":12,"fiber":2.5,"eurPerKg":3.56,"grounding":"INFERENCE"},"reis":{"label":"reis","kcal":350,"protein":7.5,"fiber":1.4,"eurPerKg":1.39,"grounding":"INFERENCE"},"toastbroetchen":{"label":"toastbroetchen","kcal":270,"protein":9,"fiber":3,"eurPerKg":2.96,"grounding":"INFERENCE","bread":true},"sandwichtoast":{"label":"Weizen-Sandwichtoast","kcal":250,"protein":8,"fiber":2.8,"eurPerKg":1.59,"grounding":"INFERENCE","pack":{"label":"Weizen-Sandwichtoast 750g (GOLDÄHREN)","price":1.19,"edible":750,"aisle":"bread","keeps":10,"freeze":true},"unit":{"grams":30,"name":"slice"},"bread":true},"pita":{"label":"pita","kcal":270,"protein":9,"fiber":3,"eurPerKg":3.31,"grounding":"INFERENCE","bread":true},"proteinBroetchen":{"label":"Protein Brötchen","kcal":270,"protein":20,"fiber":9,"eurPerKg":4.63,"grounding":"INFERENCE","pack":{"label":"Protein Brötchen 300g (GOLDÄHREN)","price":1.39,"edible":300,"aisle":"bread","keeps":7,"freeze":true},"unit":{"grams":75,"name":"Protein-Brötchen"},"bread":true},"proteinWrap":{"label":"Protein-Wraps","kcal":318,"protein":18.4,"fiber":6.1,"eurPerKg":4.66,"grounding":"CONFIRMED","pack":{"label":"Protein-Wraps 320g (GOLDÄHREN)","price":1.49,"edible":320,"aisle":"bread","keeps":14,"freeze":true},"unit":{"grams":40,"name":"wrap"},"bread":true},"weizenWraps":{"label":"Weizen-Wraps","kcal":312,"protein":9,"fiber":2.7,"eurPerKg":3.21,"grounding":"CONFIRMED","pack":{"label":"Weizen-Wraps 496g = 8 Stück (GOLDÄHREN)","price":1.59,"edible":496,"aisle":"bread","keeps":14,"freeze":true},"unit":{"grams":62,"name":"wrap"},"bread":true},"griechJog0":{"label":"griechJog0","kcal":57,"protein":10,"fiber":0,"eurPerKg":7.45,"grounding":"INFERENCE"},"skyrFrucht":{"label":"skyrFrucht","kcal":85,"protein":9,"fiber":0.5,"eurPerKg":2.98,"grounding":"INFERENCE"},"gouda":{"label":"Gouda jung","kcal":379,"protein":23.9,"fiber":0,"eurPerKg":8.42,"grounding":"CONFIRMED","pack":{"label":"Gouda jung 450g (HOFBURGER)","price":3.79,"edible":450,"aisle":"dairy","keeps":21,"freeze":false},"meal":"Dinner"},"broccoli":{"label":"Broccoli (TK)","kcal":29,"protein":3,"fiber":3,"eurPerKg":3.59,"grounding":"CONFIRMED","pack":{"label":"Bio-Gemüsesortiment Broccoli 750g TK","price":2.69,"edible":750,"aisle":"frozen","keeps":365,"freeze":false},"meal":"Lunch"},"sunflower":{"label":"Sonnenblumenkerne","kcal":665,"protein":21,"fiber":6.7,"eurPerKg":2.98,"grounding":"CONFIRMED","pack":{"label":"Sonnenblumenkerne 400g (FARMER NATURALS)","price":1.19,"edible":400,"aisle":"dry","keeps":180,"freeze":false},"meal":"Breakfast"},"vollkornSandwich":{"label":"Vollkorn-Sandwichtoast","kcal":239,"protein":8.6,"fiber":6.6,"eurPerKg":1.59,"grounding":"CONFIRMED","pack":{"label":"Vollkorn-Sandwichtoast 750g (GOLDÄHREN)","price":1.19,"edible":750,"aisle":"bread","keeps":10,"freeze":true},"unit":{"grams":37.5,"name":"slice"},"bread":true},"laugenbrezen":{"label":"Laugenbrezen","kcal":214,"protein":8.1,"fiber":2.3,"eurPerKg":2.29,"grounding":"CONFIRMED","pack":{"label":"Laugenbrezen 868g = 10 Stück (GOLDÄHREN)","price":1.99,"edible":868,"aisle":"bread","keeps":5,"freeze":true},"unit":{"grams":86.8,"name":"Brezel"},"bread":true},"riesenbohnen":{"label":"riesenbohnen","kcal":95,"protein":7,"fiber":5,"eurPerKg":3.36,"grounding":"INFERENCE"},"tuna":{"label":"Thunfisch, drained","ready":true,"kcal":189,"protein":25,"fiber":0,"eurPerKg":10.32,"grounding":"INFERENCE","pack":{"label":"Thunfischfilets in Sonnenblumenöl 185g (ALMARE)","price":1.29,"edible":125,"aisle":"dry","keeps":365,"freeze":false},"main":true},"proteinChips":{"label":"Protein Chips Paprika","kcal":401,"protein":41,"fiber":13,"eurPerKg":29.83,"grounding":"CONFIRMED","pack":{"label":"Protein Chips 60g Paprika (ALDI SPORTS)","price":1.79,"edible":60,"aisle":"dry","keeps":180,"freeze":false}},"passata":{"label":"Passierte Tomaten","kcal":26,"protein":1.5,"fiber":1,"eurPerKg":1.3,"grounding":"INFERENCE","pack":{"label":"Passierte Tomaten 500g (KING'S CROWN)","price":0.65,"edible":500,"aisle":"dry","keeps":365,"freeze":false},"meal":"Lunch"},"porkXXL":{"label":"Schwein-Minutensteaks","kcal":119,"protein":23,"fiber":0,"eurPerKg":5.99,"grounding":"CONFIRMED","pack":{"label":"Schwein-Minutensteaks XXL 800g (MEINE METZGEREI)","price":4.79,"edible":800,"aisle":"meat","keeps":3,"freeze":true},"main":true},"bratwurst":{"label":"Schweine-Bratwurst","kcal":236,"protein":18,"fiber":0,"eurPerKg":4.48,"grounding":"CONFIRMED","pack":{"label":"Schweine-Bratwurst 600g (MEINE METZGEREI)","price":2.69,"edible":600,"aisle":"meat","keeps":3,"freeze":true},"main":true},"porkBelly":{"label":"Schweine-Bauchscheiben","kcal":293,"protein":17,"fiber":0,"eurPerKg":8.32,"grounding":"CONFIRMED","pack":{"label":"Schweine-Bauchscheiben Natur 600g (MEINE METZGEREI)","price":4.99,"edible":600,"aisle":"meat","keeps":3,"freeze":true},"main":true},"rice":{"label":"Parboiled Reis (dry)","kcal":356,"protein":7.7,"fiber":1.4,"eurPerKg":1.39,"grounding":"INFERENCE","pack":{"label":"Parboiled Reis 1kg (BON-RI)","price":1.39,"edible":1000,"aisle":"dry","keeps":365,"freeze":false},"meal":"Lunch"},"knaecke":{"label":"Vollkorn-Knäckebrot","kcal":344,"protein":12,"fiber":15.3,"eurPerKg":5.16,"grounding":"CONFIRMED","pack":{"label":"Knäckebrot Vollkorn 250g (GOLDÄHREN)","price":1.29,"edible":250,"aisle":"bread","keeps":180,"freeze":false}},"flax":{"label":"Leinsamen geschrotet","kcal":509,"protein":21.1,"fiber":27.7,"eurPerKg":3.1,"grounding":"CONFIRMED","pack":{"label":"Bio Leinsamen geschrotet 500g","price":1.55,"edible":500,"aisle":"dry","keeps":90,"freeze":false}},"dinkelSandwich":{"label":"Dinkelsandwich","kcal":248,"protein":10.2,"fiber":5.1,"eurPerKg":2.25,"grounding":"CONFIRMED","pack":{"label":"Dinkelsandwich 750g (GOLDÄHREN)","price":1.69,"edible":750,"aisle":"bread","keeps":10,"freeze":true},"unit":{"grams":30,"name":"slice"},"bread":true},"shrimp":{"label":"Garnelen (TK, net)","kcal":72,"protein":16,"fiber":0,"eurPerKg":15.98,"grounding":"CONFIRMED","pack":{"label":"Garnelen 720g, ~500g net (GOLDEN SEAFOOD, TK)","price":7.99,"edible":500,"aisle":"frozen","keeps":365,"freeze":false},"main":true},"tortillaChips":{"label":"Tortilla Chips Salz","kcal":481,"protein":7.8,"fiber":4.5,"eurPerKg":3.97,"grounding":"INFERENCE","pack":{"label":"Tortilla Chips Salz 300g (SUNSNACKS)","price":1.19,"edible":300,"aisle":"dry","keeps":60,"freeze":false},"meal":"Lunch"},"cucumber":{"label":"Salatgurke","kcal":12,"protein":0.6,"fiber":0.5,"eurPerKg":1.72,"grounding":"INFERENCE","pack":{"label":"Salatgurke, Stück (~400g)","price":0.69,"edible":400,"aisle":"produce","keeps":7,"freeze":false},"meal":"Lunch"},"redOnion":{"label":"Rote Zwiebel","kcal":40,"protein":1.1,"fiber":1.7,"eurPerKg":1.29,"grounding":"INFERENCE","pack":{"label":"Rote Zwiebeln 1kg","price":1.29,"edible":1000,"aisle":"produce","keeps":42,"freeze":false},"meal":"Lunch"},"jalapeno":{"label":"Jalapeño / grüne Chili","kcal":29,"protein":0.9,"fiber":2.8,"eurPerKg":9.9,"grounding":"INFERENCE","pack":{"label":"Grüne Chilischoten 100g","price":0.99,"edible":100,"aisle":"produce","keeps":10,"freeze":false},"meal":"Lunch"},"lime":{"label":"Limette (Saft)","kcal":30,"protein":0.7,"fiber":0.3,"eurPerKg":7.45,"grounding":"INFERENCE","pack":{"label":"Limetten 500g (~200 ml Saft)","price":1.49,"edible":200,"aisle":"produce","keeps":21,"freeze":false},"meal":"Lunch"},"cilantro":{"label":"Koriander","kcal":23,"protein":2.1,"fiber":2.8,"eurPerKg":49.67,"grounding":"INFERENCE","pack":{"label":"Koriander, Topf/Bund (~30g)","price":1.49,"edible":30,"aisle":"produce","keeps":5,"freeze":false},"meal":"Lunch"},"bacon":{"label":"Bauchspeck Bacon-Streifen","kcal":305,"protein":19,"fiber":0,"eurPerKg":8.63,"grounding":"CONFIRMED","pack":{"label":"Bauchspeck Bacon-Streifen 300g (GUT DREI EICHEN)","price":2.59,"edible":300,"aisle":"meat","keeps":7,"freeze":true},"meal":"Breakfast","main":true},"potato":{"label":"Speisekartoffeln","kcal":77,"protein":2,"fiber":2.2,"eurPerKg":0.96,"grounding":"INFERENCE","pack":{"label":"Speisekartoffeln 2,5kg","price":2.39,"edible":2500,"aisle":"produce","keeps":21,"freeze":false},"meal":"Lunch"},"butter":{"label":"Butter","kcal":744,"protein":0.6,"fiber":0,"eurPerKg":7.16,"grounding":"CONFIRMED","pack":{"label":"Weidebutter 250g (MILSANI)","price":1.79,"edible":250,"aisle":"dairy","keeps":42,"freeze":true},"liquid":false,"meal":"Lunch"},"beef":{"label":"Hackfleisch vom Rind","kcal":243,"protein":18.2,"fiber":0,"eurPerKg":11.58,"grounding":"CONFIRMED","pack":{"label":"Hackfleisch vom Rind 500g (MEINE METZGEREI)","price":5.79,"edible":500,"aisle":"meat","keeps":2,"freeze":true},"meal":"Lunch","main":true},"onion":{"label":"Speisezwiebeln","kcal":40,"protein":1.1,"fiber":1.7,"eurPerKg":0.93,"grounding":"INFERENCE","pack":{"label":"Speisezwiebeln gelb 1,5kg","price":1.39,"edible":1500,"aisle":"produce","keeps":42,"freeze":false},"meal":"Lunch"},"hamburgerBun":{"label":"Hamburger-Brötchen","kcal":286,"protein":8.5,"fiber":3,"eurPerKg":3.3,"grounding":"CONFIRMED","pack":{"label":"Hamburger-Brötchen 300g, 6 Stück (Aldi)","price":0.99,"edible":300,"aisle":"bread","keeps":5,"freeze":true},"unit":{"grams":50,"name":"bun"},"bread":true},"coconutMilk":{"label":"Kokosnussmilch","kcal":208,"protein":2.2,"fiber":0,"eurPerKg":2.98,"grounding":"CONFIRMED","pack":{"label":"Kokosnussmilch 400ml (ASIA GREEN GARDEN)","price":1.19,"edible":400,"aisle":"dry","keeps":365,"freeze":false},"liquid":true,"meal":"Lunch"},"milk":{"label":"Frische Milch 1,5 %","kcal":46,"protein":3.4,"fiber":0,"eurPerKg":0.85,"grounding":"CONFIRMED","pack":{"label":"Frische Milch 1,5 % 1l (MILSANI)","price":0.85,"edible":1000,"aisle":"dairy","keeps":7,"freeze":true},"liquid":true,"meal":"Snack 1"},"jasmine":{"label":"Jasmin-Reis (dry)","kcal":350,"protein":6.8,"fiber":1.3,"eurPerKg":1.99,"grounding":"CONFIRMED","pack":{"label":"Jasmin Reis 1kg (BON-RI)","price":1.99,"edible":1000,"aisle":"dry","keeps":365,"freeze":false},"meal":"Lunch"},"starch":{"label":"Speisestärke","kcal":355,"protein":0.5,"fiber":0,"eurPerKg":1.98,"grounding":"CONFIRMED","pack":{"label":"Speisestärke 400g (GOLDÄHREN)","price":0.79,"edible":400,"aisle":"dry","keeps":730,"freeze":false}},"mascarpone":{"label":"Mascarpone","kcal":385,"protein":4.2,"fiber":0,"eurPerKg":7.56,"grounding":"CONFIRMED","pack":{"label":"Mascarpone 250g (CUCINA)","price":1.89,"edible":250,"aisle":"dairy","keeps":14,"freeze":false}},"mango":{"label":"Mango (frisch)","kcal":60,"protein":0.8,"fiber":1.6,"eurPerKg":3,"grounding":"INFERENCE","pack":{"label":"Mango, Stück (~300g essbar, Preis INFERENCE: Frischobst nicht online gelistet)","price":0.9,"edible":300,"aisle":"produce","keeps":5,"freeze":false},"meal":"Lunch"},"kidney":{"label":"Rote Kidneybohnen (abgetropft)","kcal":108,"protein":7.7,"fiber":5.7,"eurPerKg":2.71,"grounding":"CONFIRMED","pack":{"label":"Rote Kidney-Bohnen, Dose 400g = 255g abgetropft (KING'S CROWN)","price":0.69,"edible":255,"aisle":"dry","keeps":365,"freeze":false},"meal":"Lunch"},"mozzarella":{"label":"Mozzarella gerieben","kcal":332,"protein":23,"fiber":0,"eurPerKg":7.16,"grounding":"CONFIRMED","pack":{"label":"Mozzarella gerieben 250g (HOFBURGER)","price":1.79,"edible":250,"aisle":"dairy","keeps":21,"freeze":true},"meal":"Lunch"},"hirtenkaese":{"label":"Hirtenkäse","kcal":256,"protein":18,"fiber":0,"eurPerKg":6.36,"grounding":"CONFIRMED","pack":{"label":"Hirtenkäse 250g (LYTTOS)","price":1.59,"edible":250,"aisle":"dairy","keeps":21,"freeze":false},"meal":"Lunch"},"saureSahne":{"label":"Saure Sahne","kcal":119,"protein":3.2,"fiber":0,"eurPerKg":2.95,"grounding":"CONFIRMED","pack":{"label":"Saure Sahne 200g (MILSANI)","price":0.59,"edible":200,"aisle":"dairy","keeps":14,"freeze":false},"meal":"Lunch"},"spitzpaprika":{"label":"Spitzpaprika rot","kcal":31,"protein":1,"fiber":2.1,"eurPerKg":4.07,"grounding":"INFERENCE","pack":{"label":"Spitzpaprika rot 500g, ~440g essbar (NATUR LIEBLINGE)","price":1.79,"edible":440,"aisle":"produce","keeps":10,"freeze":true},"meal":"Lunch"},"tomato":{"label":"Datteltomaten","kcal":18,"protein":0.9,"fiber":1.2,"eurPerKg":3.78,"grounding":"INFERENCE","pack":{"label":"Datteltomaten 500g (NATUR LIEBLINGE)","price":1.89,"edible":500,"aisle":"produce","keeps":7,"freeze":false},"meal":"Lunch"},"pangasius":{"label":"Pangasiusfilet (TK)","kcal":84,"protein":17,"fiber":0,"eurPerKg":6.1,"grounding":"CONFIRMED","pack":{"label":"Pangasius Filets 900g TK (GOLDEN SEAFOOD)","price":5.49,"edible":900,"aisle":"frozen","keeps":180,"freeze":true},"main":true},"hotDogBun":{"label":"Hot-Dog-Brötchen","kcal":276,"protein":8.5,"fiber":2.5,"eurPerKg":3.56,"grounding":"CONFIRMED","pack":{"label":"Hot-Dog Brötchen 250g (GOLDÄHREN)","price":0.89,"edible":250,"aisle":"bread","keeps":5,"freeze":true},"unit":{"grams":62.5,"name":"bun"},"bread":true},"chipotleMayo":{"label":"Chipotle-Mayo","kcal":494,"protein":0.6,"fiber":0,"eurPerKg":7.56,"grounding":"CONFIRMED","pack":{"label":"Mayo Chipotle 250ml (DELIKATO)","price":1.89,"edible":250,"aisle":"dry","keeps":60,"freeze":false},"meal":"Lunch"},"paniermehl":{"label":"Paniermehl","kcal":350,"protein":12,"fiber":4.7,"eurPerKg":1.49,"grounding":"CONFIRMED","pack":{"label":"Paniermehl 1kg (GOLDÄHREN)","price":1.49,"edible":1000,"aisle":"dry","keeps":180,"freeze":false},"meal":"Lunch"},"pineapple":{"label":"Ananas-Stücke (abgetropft)","kcal":57,"protein":0.5,"fiber":0,"eurPerKg":5.26,"grounding":"CONFIRMED","pack":{"label":"Ananas Stücke, Dose 560g = 340g abgetropft (SWEET VALLEY)","price":1.79,"edible":340,"aisle":"dry","keeps":365,"freeze":false},"meal":"Lunch"},"redCabbage":{"label":"Rotkohl, frisch","kcal":27,"protein":1.4,"fiber":2.5,"eurPerKg":0.88,"grounding":"INFERENCE","pack":{"label":"Rotkohl lose, je kg","price":0.88,"edible":1000,"aisle":"produce","keeps":21,"freeze":false},"meal":"Lunch"},"dumplingWrap":{"label":"Dumpling-Teigblätter","kcal":285,"protein":9,"fiber":2,"eurPerKg":9.96,"grounding":"INFERENCE","pack":{"label":"Dumpling-Teigblätter 250g (Asia-Markt, schon gekauft; Preis vom Nutzer, Nährwerte INFERENCE)","price":2.49,"edible":250,"aisle":"bread","keeps":14,"freeze":true},"bread":true},"chinakohl":{"label":"Chinakohl","kcal":13,"protein":1.2,"fiber":1.2,"eurPerKg":2.24,"grounding":"INFERENCE","pack":{"label":"Chinakohl, 1 Kopf (~800 g essbar)","price":1.79,"edible":800,"aisle":"produce","keeps":14,"freeze":false},"meal":"Lunch"},"freshGinger":{"label":"Ingwer, frisch","kcal":80,"protein":1.8,"fiber":2,"eurPerKg":7.9,"grounding":"INFERENCE","pack":{"label":"Ingwer, lose (~100 g)","price":0.79,"edible":100,"aisle":"produce","keeps":21,"freeze":true},"meal":"Lunch"},"springOnion":{"label":"Frühlingszwiebeln","kcal":32,"protein":1.8,"fiber":2.6,"eurPerKg":7.9,"grounding":"INFERENCE","pack":{"label":"Frühlingszwiebeln, Bund (~100 g essbar)","price":0.79,"edible":100,"aisle":"produce","keeps":7,"freeze":false},"meal":"Lunch"}};
+const DAYTYPES = [{"id":"C","name":"Roast chicken","knob":"brathaehnchen","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"brathaehnchen":110,"eggs":110,"broccoli":200,"sunflower":35,"gouda":40},"lock":{"bread":300,"oil":5,"veg":0,"solveKnob":false},"hue":145,"family":"poultry","meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top.","Lunch":"**Soy-ginger glazed chicken & charred broccoli** — Heat 5 ml rapeseed oil until smoking and **char** the thawed 200 g TK broccoli 4 min, unstirred for the first 2 min. Add 110 g roast chicken, 2 tbsp broth, 1 tsp soy sauce and a pinch each of ground ginger and chili flakes; lid on 2 min until steaming hot and glossy. Squeeze over lemon juice and mop the pan with 4 slices (150 g) toasted Vollkorn-Sandwichtoast.","Dinner":"**Gouda-mustard melts with fried eggs & cocoa-peanut quark** — Spread 4 slices (150 g) Vollkorn-Sandwichtoast with mustard, top with 40 g grated Gouda jung and bake at 200 °C for 6 min. Fry 2 eggs (110 g) in a dry non-stick pan and lay one on each of two melts. Dessert: Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Stir in 4 g baking cocoa, and finish with 1 apple (70 g)."},"notes":[{"title":"Why this menu","text":"**One TK Brathähnchen (1,2 kg, 65% edible assumed ≈ 780 g) is exactly 7 × 110 g: one bird a week, no waste.** Broccoli, sunflower seeds and Gouda close the micronutrient gaps. This is the cost baseline of the plan. **Weigh the stripped meat once** to confirm the 65% yield; if it is under 770 g, make the last portion smaller."},{"title":"Roast & carve","text":"Bird thaws ~24 h in the fridge (bottom shelf, plate, in its bag); don't rinse it. Pat dry, rub salt, pepper, paprika. **200 °C fan, ~75 min**, breast up. Done at **75 °C** in the thickest thigh (no bone contact), or when juices run clear and the leg wobbles loose. Rest 15 min, strip warm by hand, tare a box, weigh **7 × 110 g**, cool spread out, fridge within 1 h: Sunday's portion is eaten fresh, Mon–Wed stay in the fridge (≤3 days), Thu–Sat are frozen flat in labelled bags."},{"title":"Bones → broth","text":"Carcass, wing tips, skin and tray jelly into a pot, ~1 l water, **bay leaf**, 10 peppercorns, ¼ tsp **ground ginger**, splash of **soy**; barely simmer 2–3 h, strain, cool fast, lift off the fat: ~700 ml. The lunch only needs 2 tbsp a day for reheating the chicken; freeze the rest in 150 ml bags for the soup menu D or next week's reheating."},{"title":"Weekly schedule","text":"**Sat**: bird freezer → fridge. **Sun**: roast, carve, broth in the oven. **Wed/Thu/Fri nights**: move tomorrow's frozen chicken portion to the fridge. **Every night**: next day's 200 g TK broccoli into a covered box in the fridge (never thaw it on the counter). Eggs: 2 a day, fried raw at dinner = 14 a week."},{"title":"Carry to uni","text":"Char the broccoli the night before and cool it 10 min; pack cold chicken, broccoli and the 4 toast slices in separate boxes with a cool pack, eat within ~4 h. Anything not eaten by evening goes in the bin."},{"title":"Seasonings","text":"Seasonings and broth add ~15–30 kcal/day, not in the totals."}],"baseline":true,"mealOf":{"eggs":"Dinner","appleSnack":"Dinner"},"breadMeals":{"Lunch":150,"Dinner":150}},{"id":"D","name":"Chicken-broth soup","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"brathaehnchen":110,"eggs":110,"broccoli":200,"sunflower":35,"gouda":40},"mealOf":{"gouda":"Lunch","eggs":"Dinner","appleSnack":"Dinner"},"lock":{"bread":300,"oil":10,"veg":0,"solveKnob":false},"hue":15,"family":"soup","meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top.","Lunch":"**Chicken-broccoli cream soup with Gouda toasts** — Off the heat, bloom ½ tsp thyme and ½ tsp ground ginger in 5 ml rapeseed oil 20 s, then add 300 ml chicken broth, 1 tsp soy sauce, 1 bay leaf and 200 g TK broccoli. Simmer 8 min, remove the bay leaf and blend two thirds of the soup smooth with a stick blender (or mash it hard with a potato masher), leaving the rest in florets. Add 110 g roast chicken torn into chunks and simmer 3 min until steaming. Off the heat stir in 40 g grated Gouda jung, 1 tsp apple vinegar, pepper and a pinch of nutmeg. Toast 4 slices (150 g) Vollkorn-Sandwichtoast and dunk.","Dinner":"**Cinnamon Arme Ritter with peanut drizzle & apple** — Whisk 2 eggs (110 g) with 3 tbsp water, cinnamon and a crushed sweetener tablet; soak 4 slices (150 g) Vollkorn-Sandwichtoast 20 s a side. Fry in 5 ml rapeseed oil over medium heat 2–3 min a side until golden and the egg is fully set. Whip 250 g Magerquark with a sweetener tablet and cinnamon and spoon it over, thin 25 g Erdnusscreme with 1 tbsp hot water, drizzle on top, and eat half an apple (70 g) on the side."},"notes":[{"title":"Why this menu","text":"**Hot chicken soup, no tomato.** The soup is chicken broth, 200 g TK broccoli, 110 g roast chicken and 40 g Gouda; toast carries the calories. One TK Brathähnchen a week (≈ 780 g edible, 7 × 110 g) gives the meat and the carcass broth. No tomato product. The broth is lighter than a tomato base, so ginger, thyme, soy and a splash of vinegar do the seasoning."},{"title":"Roast, broth & portions","text":"Sun 10:30: roast the thawed 1,2 kg chicken at 200 °C fan ~75 min to 75 °C in the thigh, rest 15 min, strip into 7 × 110 g. Fridge Sun–Wed (Sunday's is eaten fresh), freeze Thu–Sat flat. **Broth for the week, ~2,1 l:** carcass, wing tips, skin and tray jelly in a big pot with 2,5 l cold water, 1 bay leaf, 10 peppercorns, ½ tsp ground ginger and 1 tsp soy; barely simmer, lid half on, 3 h; strain, chill, lift the fat. Fridge 3 × 300 ml (Sun–Tue); freeze 4 × 300 ml flat in bags and move one to the fridge each evening from Tue."},{"title":"Soup rules & food safety","text":"Bloom dried spices 20 s in the oil off the heat. Broccoli straight from frozen: 5 min keeps bite, 8 min is blendable. Reheat each broth portion to a rolling boil, add the chicken last and simmer 3 min until steaming throughout. Salt only at the end (the soy is salty), always finish with acid. Cool leftover broth within 2 h, fridge ≤3 days."},{"title":"Kit","text":"Stick blender (Pürierstab, ~€10) blends straight in the pot, head fully submerged. No blender: simmer the broccoli 3–4 min longer and mash hard with a potato masher; the Gouda helps it turn creamy. Also big pot, grater, 4 freezer bags, probe thermometer (~€8) for the 75 °C check. For a uni day, pour the boiling soup into a preheated thermos and eat within ~4 h."},{"title":"Label check","text":"Soy sauce: plain soy/wheat/salt/water only, no 'Würzsauce' blends. Mustard-free recipe; check the Thymian and Muskat jars for pure spice lists. Seasonings and broth add ~15–30 kcal/day, not in the totals."}],"breadMeals":{"Lunch":150,"Dinner":150},"knob":"brathaehnchen"},{"id":"E","name":"Pork stir-fry with rice","knob":"porkXXL","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":110,"broccoli":200,"sunflower":35,"gouda":30,"porkXXL":100,"rice":120},"lock":{"bread":225,"oil":5,"veg":0,"solveKnob":false},"hue":30,"family":"pork","mealOf":{"eggs":"Lunch","mandarinSnack":"Dinner"},"meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then scatter them over with 1 mandarin (70 g) in segments. Toast 2 slices Vollkorn-Sandwichtoast (75 g) and drag them through the **quark**.","Lunch":"**Ginger-soy pork & broccoli rice with hard-boiled eggs** — Slice 100 g pork Minutensteaks thin across the grain, velvet 10 min in 1 tsp soy sauce + 1 tbsp water + ½ tsp ground ginger. Heat 5 ml rapeseed oil in a hot pan, sear the pork 90 s on max heat, then add 200 g TK broccoli (thawed) and toss 2 min. Toss in 120 g parboiled rice (dry weight, cooked batch) with 1 tbsp soy sauce and black pepper until steaming throughout. Pack 2 hard-boiled eggs (110 g) from the Sunday batch alongside in the lunch box (peeled or in the shell; eat alongside the rice bowl).","Dinner":"**Peanut-cinnamon quark with cheese toast & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 4 slices (150 g) Vollkorn-Sandwichtoast; grate 30 g Gouda jung over two of them and grill until bubbling and golden. Eat the cheese toast and the sweet quark side by side, and finish with 1 apple (70 g) for dessert."},"notes":[{"title":"Why this menu","text":"**Cheapest complete menu so far (€4,52/day).** Pork Minutensteaks from the 800 g XXL pack cost €5,86/kg, which is €25,5 per kg of protein, against €43 for chicken breast. Parboiled rice at €1,39/kg is the cheapest calorie source in the plan. Rice replaces toast at lunch, so the toast moves to breakfast and dinner. Broccoli, sunflower seeds and Gouda close the micronutrient gaps as in the other menus. Estimates from USDA/BLS reference values `[INFERENCE]`: iron ~17 mg, zinc ~17 mg, calcium ~1060 mg, magnesium ~550 mg, vitamin C ~125 mg, folate ~480 µg. The rice fiber value is a reference value; its Aldi panel lists none."},{"title":"Weekly schedule","text":"Pork: buy the 800 g XXL pack on Saturday = 8 × 100 g. Cook 1 that day, keep 1 in the fridge for Sunday, and the same day freeze 6 flat in thin bags (the spare rolls into next week). Move each portion to the fridge ~24 h before its cook. Pan cooks: Sun eve (Mon cold), Tue morning (thermos), Tue eve (Wed cold), Thu morning (thermos), Thu eve (Fri cold), Sat + Sun at lunch. Rice, 840 g dry/week: Sun eve 360 g dry (Mon–Wed), Wed eve 240 g dry (Thu–Fri), Fri eve 240 g dry (Sat–Sun); weigh each cooked batch and split it evenly into boxes. Eggs: boil 8 on Sunday (Sun–Wed) and 6 on Wednesday (Thu–Sat) = 14 per week, kept in the shell in the fridge."},{"title":"Rice & carry safety","text":"Bacillus cereus spores survive boiling; if cooked rice sits warm they germinate and make a heat-stable toxin that reheating will not destroy. So: drain, spread thin on a tray, boxed in the fridge within 1 h, eat within 3 days, reheat only once and only until steaming throughout. Pork: thin slices cook through in ~90 s on max heat — no pink juices. Cold carry (Mon/Wed/Fri): cooked the evening before, chilled within 1 h, packed straight from the fridge with a frozen cool pack, eaten within ~4 h; bin leftovers. Thermos (Tue/Thu): preheat 5 min with boiling water, fill to the brim piping hot, eat within ~4 h while above 60 °C; if it is only lukewarm, don't eat it."},{"title":"Kit","text":"Wide-mouth stainless food thermos, 0.9–1 L (a full lunch is ~650 g). Leak-proof ~1 L lunch box for the cold days. Insulated lunch bag + 2 freezer cool packs, rotated so one is always frozen. Kitchen scale (rice weighed dry, pork raw). Baking tray for cooling rice, 3 lidded rice boxes, flat freezer bags. A large carbon-steel or nonstick pan (28 cm) — get it smoking hot before the 5 ml oil goes in; heat, not more oil, gives the char."},{"title":"Label check","text":"KIKKOMAN: the naturally brewed bottle lists only water, soybeans, wheat, salt — skip teriyaki or 'flavoured' variants. Minutensteaks: take the plain 'natur' XXL pack; marinated or 'gewürzt' versions usually carry allium seasoning. Paprika, Pfeffer bunt, ground ginger: pure spice lists only, no 'Gewürzzubereitung' with flavour enhancers or allium powders. Horseradish and mustard jars: scan for allium and added sugar. Erdnusscreme: ideally just peanuts (+ salt). BON-RI rice: plain parboiled, not a seasoned mix. Vollkorn-Sandwichtoast: wholegrain flour listed first."}],"breadMeals":{"Breakfast":75,"Dinner":150}},{"id":"G","name":"Aguachile negro (Sat + Sun)","knob":"shrimp","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":165,"broccoli":100,"sunflower":35,"gouda":30,"shrimp":125,"tortillaChips":45,"cucumber":150,"redOnion":40,"lime":40,"cilantro":5},"mealOf":{"broccoli":"Dinner","oil":"Dinner"},"breadMeals":{"Breakfast":112.5,"Dinner":150},"lock":{"bread":262.5,"oil":5,"veg":0,"solveKnob":false},"hue":160,"family":"seafood","meals":{"Breakfast":"**Cinnamon-Mandarin Emmer Quark Bowl** — Stir Magerquark 250 g with a splash of water, a pinch of cinnamon and a crushed sweetener tablet until glossy. Fold in Emmerflocken 50 g and let it sit 5 min to soften. Dry-toast sunflower seeds 35 g in the pan 2–3 min until fragrant and scatter them over with 1 mandarin (70 g) in segments. Toast 3 slices Vollkorn-Sandwichtoast (112,5 g) and eat alongside, dragging them through the quark.","Snack 1":"**Chili-Lime Eggs** — 2 boiled eggs (110 g) from the Saturday-morning batch (9 min, ice bath), halved and seasoned with salt, chili flakes and a few drops of lime, street-cart style.","Lunch":"**Aguachile negro on tortilla chips** — Fridge-thawed shrimp 125 g: if raw, poach 60–90 s in salted simmering water until just opaque, ice-bath 2 min, drain and pat dry; if pre-cooked, skip that. Butterfly each shrimp lengthwise. Toast ~1 g **chiltepín** (about 10 dried pods; start with 6 and add more) in a dry pan 15–20 s until dark and smoky (open the window), then crush it to a coarse powder. Whisk 40 ml lime juice with 15 ml soy sauce, the chiltepín, ½ sweetener tablet, 3 drops apple vinegar and lots of cracked black pepper: this is the black aguachile sauce. **Taste a drop first: chiltepín is brutally hot.** Pour it over the shrimp and cure 10–15 min in the fridge. Add 40 g red onion in thin slivers (soaked 10 min in ice water) and 150 g cucumber in half-moons, scatter 5 g cilantro, and eat ice-cold piled on 45 g tortilla chips.","Snack 2":"**Apfelschnitze mit Chili-Salz** — 1 Apfel (140 g), in Schnitze geschnitten und mit einer Prise Chiliflocken und Salz bestäubt, Mexican street-food style.","Dinner":"**Broccoli-egg Gouda toasts + peanut quark** — Steam 100 g TK broccoli covered with a splash of water 4 min, then add 5 ml rapeseed oil, chili flakes and paprika and fry until charred; push aside and scramble 1 egg (55 g) beside it. Make 2 sandwiches from 4 slices (150 g) Vollkorn-Sandwichtoast, the broccoli-egg and 30 g grated Gouda jung, and press in the pan 2–3 min a side until golden and melty. Dessert: Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet)."},"notes":[{"title":"Why this menu","text":"**Weekend treat, Saturday + Sunday only (the only menu that is not a full week).** Lunch is a black aguachile: 125 g shrimp (GOLDEN SEAFOOD TK, €7,99 per 720 g, assumed ~500 g net after glaze `[INFERENCE]`) cured in lime and soy with **chiltepín as the one chili**, over tortilla chips. The rest of the day keeps the plan complete: quark, eggs, seeds, broccoli and Gouda. Fresh produce (cucumber, red onion, limes, cilantro) isn't listed online, so those prices are estimates. Chiltepín is a non-Aldi spice-shop buy (~€9,50 `[INFERENCE]`, pack size unconfirmed): ~1 g a portion, so one pack lasts many weekends."},{"title":"Shrimp safety","text":"Thaw only in the fridge: shrimp in a covered box on the bottom shelf overnight, never on the counter or in warm water. Check the GOLDEN SEAFOOD pack for 'roh' vs 'gekocht' – raw is grey-translucent, cooked is pink-opaque. Raw: poach 60–90 s in salted, barely simmering water until just opaque and curled into a loose C, then straight into ice water for 2 min; lime alone does NOT make raw shrimp safe. Pre-cooked: skip poaching. Keep everything cold, cure in the fridge 10–15 min and eat within 30 min. Use thawed shrimp within 24 h, never refreeze, bin anything smelling of ammonia. Wash board, knife and hands after raw shrimp."},{"title":"Weekend schedule","text":"Friday (or Saturday morning): buy fresh produce – 3 limes, 1 large cucumber (≥300 g), 1 red onion, 1 bunch cilantro (stand it in a glass of water in the fridge), 4 Äpfel. Friday night: move Saturday's 125 g frozen shrimp to the fridge. Saturday morning: boil 4 eggs 9 min, ice-bath, fridge (2 snack eggs per day). Start lunch 30 min ahead; slice the onion and soak 10 min in ice water. Saturday night: move Sunday's shrimp to the fridge."},{"title":"Kit","text":"1 pot for poaching shrimp and boiling eggs; 1 pan with lid for toasting chiltepín, sunflower seeds, broccoli, eggs and toasts; mortar or the back of a spoon for crushing the chiltepín; bowl of ice water, slotted spoon, kitchen scale, citrus squeezer or fork, and a chilled bowl – aguachile should hit the table fridge-cold. Wash hands after handling chiltepín; do not touch your eyes."}]},{"id":"K","name":"Oven fries, pork steak & sunny-side eggs","knob":"porkXXL","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":220,"broccoli":150,"sunflower":35,"potato":350,"porkXXL":114},"mealOf":{"eggs":"Lunch","oil":"Lunch","appleSnack":"Dinner"},"breadMeals":{"Breakfast":75,"Dinner":75},"lock":{"bread":150,"oil":25,"veg":0,"solveKnob":false},"hue":55,"family":"potato","meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Crispy oven fries with pork steak, sunny-side eggs & roast broccoli** — Scrub 350 g potatoes, leave the skin on and cut into 1 cm sticks. Simmer them 5 min in salted water with a splash of apple vinegar until the edges just give, drain, and steam-dry in the colander 5 min, shaking once to rough up the surfaces (the fluffy crust is what crisps). Put a tray in the oven at 230 °C fan for 10 min. Toss the potatoes in 20 ml rapeseed oil, salt and ½ tsp paprika, slide them onto the screaming-hot tray in a single layer with gaps, and bake 25–30 min, turning once at 15 min, until deep golden. Toss 150 g thawed TK broccoli in the oil left in the bowl and add it to the tray for the last 12 min. Meanwhile slice 114 g Schwein-Minutensteaks thin, salt and pepper them, sear 90 s a side in a hot pan with 5 ml oil, push aside and fry 4 eggs (220 g) sunny-side up, lid on for 30 s. Eat with 25 g ketchup.","Dinner":"**Peanut-cinnamon quark with toast soldiers & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 2 slices (75 g) Vollkorn-Sandwichtoast, cut into soldiers and dip them, then finish with 1 apple (70 g)."},"notes":[{"title":"Why this menu","text":"**Oven fries with pork steak and eggs.** Potatoes are the cheapest calories in the plan (~€1/kg, INFERENCE). The oil question: America's Test Kitchen's crispiest oven fries use 90 ml oil for ~800 g of potatoes (11 ml per 100 g, ~800 kcal of oil); this menu uses 20 ml for 350 g (5,7 ml per 100 g, ~175 kcal) and gets its crunch from the parboil-with-vinegar, steam-dry, preheated-tray method instead (a parboil-first method The Kitchn tested in its 7-way oven-fries comparison; its result was not verified here, so expect crisp-edged rather than deep-fried). Pork Minutensteaks XXL 800 g ÷ 7 = 114 g a day: exactly one pack a week. Toast is cut to 4 slices a day to pay for the oil."},{"title":"Weekly schedule","text":"Potatoes: 350 g × 7 = 2,45 kg, one 2,5 kg bag a week (keeps ~3 weeks cool and dark). Pork: portion the 800 g pack into 114 g bags, freeze 5 flat, fridge 2; thaw ~24 h before. Eggs: 4 a day = 28 a week, two 18-packs. TK broccoli thaws overnight in the fridge. Leftover fries reheat 8–10 min at 220 °C on a hot tray, not in the microwave."},{"title":"Ketchup","text":"Ketchup adds ~27 kcal a day, not in the totals. Quark is eaten sweet only."}]},{"id":"L","name":"Mash with pork steak, bacon & eggs","knob":"porkXXL","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":110,"broccoli":100,"sunflower":35,"potato":350,"butter":15,"bacon":40,"porkXXL":114},"mealOf":{"eggs":"Lunch","bacon":"Lunch","appleSnack":"Dinner"},"breadMeals":{"Breakfast":75,"Dinner":150},"lock":{"bread":225,"oil":0,"veg":0,"solveKnob":false},"hue":80,"family":"potato","meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Butter mash with pork steak, crispy bacon, charred broccoli & hard-boiled eggs** — Wash 350 g potatoes, peel them if the skin is thick, and cut into 3 cm chunks. Cover with cold salted water, bring to the boil and simmer 15–20 min until a knife slides in. Drain (keep a cup of the water), return to the hot pot 3 min to steam-dry, then mash with a masher or ricer; stir in 15 g butter, ~50 ml of the hot potato water, salt, white pepper and a pinch of nutmeg until creamy (don't blend: it turns gluey). Meanwhile cut 40 g Bacon-Streifen into 1 cm pieces and render in a cold pan, rising to medium, 4–5 min until crisp; lift the bits out. In the bacon fat sear 114 g Schwein-Minutensteaks, sliced thin and salted, 90 s a side on high heat, then push aside and char 100 g thawed TK broccoli 3 min. Pile the mash, pork, broccoli and bacon bits on a plate with 2 hard-boiled eggs (110 g), quartered, on the side.","Dinner":"**Peanut-cinnamon quark with toast soldiers & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 4 slices (150 g) Vollkorn-Sandwichtoast, cut into soldiers and dip them, then finish with 1 apple (70 g)."},"notes":[{"title":"Why this menu","text":"**Mashed potatoes with pork steak, bacon and hard-boiled eggs (cut to €4,63/day on 2026-10-29).** The first version (85 g bacon, 5 eggs) cost €5,10 because bacon (€45 per kg of protein) and eggs (€32) carried the protein; pork Minutensteaks cost €25,5 per kg of protein, so the pork now does the work and the bacon is flavour (40 g). Butter is sized to the calorie window: BBC Good Food's creamy mash uses ~6,5 g butter + 5 ml milk per 100 g potato (1 kg: 50 g + 1 tbsp butter, 50 g milk); here it is 15 g for 350 g (4,3 g per 100 g, 112 kcal) and the potato cooking water replaces the milk. 6 toast slices pay for the calories the lean lunch leaves free."},{"title":"Weekly schedule","text":"Potatoes: 350 g × 7 = 2,45 kg, one 2,5 kg bag a week. Pork: 114 g × 7 = 798 g, exactly one 800 g XXL pack; portion into 114 g bags, freeze 5 flat, fridge 2, thaw ~24 h before. Bacon: 40 g × 7 = 280 g, one 300 g pack (opened bacon keeps ~7 days). Eggs: 14 a week, one 18-pack; boil 14 on Sunday, unpeeled in the fridge. Butter: 105 g a week, one 250 g pack lasts ~2,4 weeks."},{"title":"Label check","text":"Butter is a CONFIRMED Aldi panel (744 kcal per 100 g); potatoes are the INFERENCE part. Quark is eaten sweet only."}]},{"id":"M","name":"Cheeseburger with onions & fried egg","knob":"beef","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"beef":140,"onion":150,"gouda":20,"eggs":165,"sunflower":35,"hamburgerBun":50},"mealOf":{"gouda":"Lunch","eggs":"Lunch","oil":"Lunch","appleSnack":"Dinner"},"breadMeals":{"Breakfast":75,"Dinner":150},"lock":{"bread":225,"oil":5,"veg":0,"solveKnob":false},"hue":355,"family":"beef","meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Double smash cheeseburger with onions & a fried egg** — Slice 150 g onions thin and cook them 12–15 min in 5 ml rapeseed oil on medium with a pinch of salt and a splash of water, stirring, until soft and golden; set aside. Roll 140 g Hackfleisch vom Rind (~19% fat) into 2 loose balls of 70 g, no kneading. Halve 1 Hamburger-Brötchen (50 g) and toast it cut-side down in a dry pan 1 min. Heat the pan very hot with no oil, put in the 2 balls, smash each flat to ~1 cm with a spatula and salt the top; cook 2 min, flip, lay a 20 g slice of Gouda jung on one patty, stack the other on it and cover 30–60 s until melted. The mince must be cooked through (grey-brown inside, 71 °C): never pink. In the beef fat fry 1 egg (55 g) sunny-side up, lid on for 30 s. Build: bun base, onions, patties with cheese, egg, bun top; mustard or ketchup if you like. Eat 2 hard-boiled eggs (110 g) from the Sunday batch alongside.","Dinner":"**Peanut-cinnamon quark with toast soldiers & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 4 slices (150 g) Vollkorn-Sandwichtoast, cut into soldiers and dip them, then finish with 1 apple (70 g)."},"notes":[{"title":"Why this menu","text":"**A burger day: beef, onions, cheese, bun.** Hackfleisch vom Rind 500 g (MEINE METZGEREI, €5,79, CONFIRMED panel: 243 kcal, 18,9 g fat, 18,2 g protein per 100 g, so ~80% lean) is the dearest protein in the plan, €63,6 per kg of protein against €25,5 for pork Minutensteaks. Three eggs (1 fried on the burger, 2 boiled alongside) carry the rest of the protein; without eggs the patty would need 250 g and the day would cost €6,01 instead of €5,16. The bun is a real Hamburger-Brötchen (Aldi, 300 g / 6 buns = 50 g each, €0,99, €3,30/kg, 286 kcal and 3 g fiber per 100 g, panel supplied by the user): cheaper per kg than Brioche Burger Brötchen (€1,69 / 300 g) and than the toast, and it is the only bread that keeps it a hamburger. Fiber sits at 31,1 g, only just above the 30 g floor, so keep the 150 g of onions. Mixed mince (Hackfleisch gemischt, €4,99 / 500 g) would save ~€0,22/day but is not beef."},{"title":"Weekly schedule","text":"Beef: 140 g × 7 = 980 g, two 500 g packs a week (20 g spare). Mince keeps only ~2 days in the fridge: on shopping day weigh both packs into 7 portions of 140 g (each as 2 loose 70 g balls), keep 2 in the fridge and freeze 5 flat in bags; thaw each overnight in the fridge. Buns: 7 a week = 2 packs of 6 (5 spare), freeze the spare buns. Onions: 1,05 kg a week, one 1,5 kg bag lasts ~10 days. Eggs: 21 a week; boil 14 on Sunday for the side, fry 7 fresh. Gouda: 140 g a week. Toast: 6 slices a day at breakfast and dinner."},{"title":"Food safety","text":"Ground beef is cooked through, not rare: grey-brown, no pink, juices clear (71 °C). Wash hands, board and spatula after the raw mince. Smashed 1 cm patties cook through in 2 min a side; do not make thick, rare patties from supermarket mince."},{"title":"Quark","text":"Quark is eaten sweet only."}]},{"id":"P","name":"Sticky coconut mango rice, soy-ginger pork & broccoli (rice cooker)","knob":"porkXXL","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":110,"coconutMilk":100,"broccoli":200,"sunflower":35,"porkXXL":114,"jasmine":100,"gouda":30,"mango":100},"mealOf":{"eggs":"Lunch","appleSnack":"Dinner"},"breadMeals":{"Breakfast":75,"Dinner":75},"lock":{"bread":150,"oil":0,"veg":0,"solveKnob":false},"hue":62,"family":"pork","meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Sticky coconut mango rice with soy-ginger pork & broccoli** — Rinse 100 g Jasmin rice (dry weight) until the water runs clear. Put it in the cooker pot with 100 ml Kokosnussmilch (shake the can first), 60 ml water, 3 sweetener tablets and a pinch of salt; stir until the tablets have dissolved, then start **SUSHI** (30 min, the program for sticky rice). Meanwhile slice 114 g Schwein-Minutensteaks into 1 cm strips, toss them in 1 tsp soy sauce and ½ tsp ground ginger, and sear them 2 min in a very hot dry non-stick pan until browned and white-grey all through; add 200 g thawed TK broccoli and toss 2 min. When the display says WARM, let the rice rest 10 min with the lid shut, then fluff it with a wooden or plastic spoon and press it into a bowl so it clumps. Peel and dice 100 g ripe mango and lay it on the rice; pack 2 hard-boiled eggs (110 g) from the Sunday batch alongside.","Dinner":"**Peanut-cinnamon quark with cheese toast & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 2 slices (75 g) Vollkorn-Sandwichtoast; grate 30 g Gouda jung over them and grill until bubbling and golden. Eat the cheese toast and the sweet quark side by side, and finish with 1 apple (70 g) for dessert."},"notes":[{"title":"Why this menu","text":"**A sweet coconut rice lunch with mango, cooked in the Reishunger.** The rice cooks in 100 ml coconut milk + 60 ml water with **3 Süßstofftabletten** (the SÜSSLI 1.200 pack already in the plan: cyclamate + saccharin, 0 kcal) on the SUSHI program (30 min, 1 : 1,25, Reishunger: for creamy, sticky rice) and is finished with fresh mango, like Thai mango sticky rice; the salty side is the soy-ginger pork. **Honest limit:** real sticky rice (Klebreis, short-grain glutinous) is not in Aldi's online range, and neither is mango (fresh produce is not listed; mango nutrition 60 kcal / 0,8 g protein / 1,6 g fiber per 100 g and €3/kg are `[INFERENCE]`). Jasmine is long-grain, so it will be clumpy and creamy, not truly glutinous; if you find Klebreis (Asian shop, needs a 4–12 h soak per Reishunger's table), use it with the same amounts. **Sweetness:** the Aldi page doesn't print the sweetness per tablet; about 1 tsp of sugar each is typical `[INFERENCE]`, so 3 tablets ≈ 15 g of sugar. Taste the cooked rice and use 4–5 next time if you want it sweeter. Cyclamate and saccharin are stable when heated `[INFERENCE]`, and unlike sugar they cannot scorch on the pot bottom. Tablet budget: the plan's cyclamate limit works out at ~29 tablets a day at your weight, and this day uses ~7 (coffee 2, quark 2, rice 3). **Coconut milk is this menu's calorie cost:** 208 kcal and 17 g saturated fat per 100 ml (Aldi panel, CONFIRMED). Mango adds ~60 kcal and ~6 g sugar. The toast is cut to 4 slices to pay for both, and the 17 g of saturated fat in 100 ml is about two-thirds of the usual ≤10 %-of-energy limit (~26 g at 2350 kcal) `[INFERENCE]`. Lighter version: Kokosnussmilch fettreduziert (same €1,19; 118 kcal and 12 g fat per 100 ml) plus one more toast slice (+90 kcal) gives about the same calories, ~5 g less saturated fat `[INFERENCE]` and ~2 g more protein. The main is Schwein-Minutensteaks XXL, 800 g ÷ 7 = 114 g a day. The day: 2425 kcal, 157 g protein, 31,9 g fiber. A flan or cheesecake instead of the 2 eggs: see the Treats tab."},{"title":"Weekly schedule","text":"Pork: buy the 800 g XXL pack = 7 × 114 g. Portion into flat bags, 2 in the fridge and 5 frozen; thaw ~24 h before. Rice: 100 g dry a day, 700 g a week, so one 1 kg bag lasts 10 days; cook it the evening before for a cold-carry lunch (chilled within 1 h, packed straight from the fridge with a frozen cool pack) or in the morning for a thermos lunch (preheat the thermos 5 min with boiling water, fill it piping hot, eat within ~4 h while above 60 °C). **Coconut milk: 100 ml a day is 700 ml, so the second 400 ml can leaves 100 ml over each week.** Open can 1 on day 1, shake it and decant it into a jar in the fridge (days 1–4); open can 2 on day 5 (days 5–7) and freeze the last 100 ml in a small box the same day. After four weeks the frozen boxes add up to one can, so that week buy one can instead of two. An opened can keeps about 4–5 days in the fridge and frozen coconut milk separates but cooks normally `[INFERENCE]`. Mango: 100 g a day is 700 g a week, about 2–3 fruits of ~300 g edible; a ripe mango keeps ~5 days, so buy 1 at a time or freeze diced pieces. Eggs: boil 14 on Sunday, unpeeled in the fridge. TK broccoli (200 g) thaws overnight in the fridge."},{"title":"Your cooker: Reishunger Mini 0.6 L","text":"**What the manual says.** Programs: STANDARD and WHITE 26 min, BROWN 62 min, SUSHI 30 min, CRISPY, CONGEE, STEAM, BAKING; keep-warm up to 24 h; maximum 3,5 cups of white rice. Reishunger's rice table gives **Jasmin and Basmati rice 1 : 1,25 on WHITE (26 min)** and brown rice 1 : 1,75, in measuring cups of rice : cups of water. **This menu uses Aldi's BON-RI Jasmin Reis** (1 kg, €1,99, ~€0,06 a day more than parboiled) because it is on that table; parboiled rice, which menu E uses for its fried rice, is not. Weigh one level measuring cup of dry rice once to learn how many grams a cup holds. My gram and ml figures assume jasmine rice weighs ~0,8 g per ml `[INFERENCE]`: 100 g ≈ 125 ml of rice, so ~155 ml of liquid (100 ml coconut milk + 60 ml water). Reishunger says a one-person portion cooks evenly. Wooden or plastic spoon only (ceramic coating), no vinegar in the pot, no dishwasher. **Steam insert** (included): with rice in the pot use at most 1 cup of rice, or the basket can be pushed up and the lid pops open; steam only food ≤3,5 cm thick; no paper towels or extra lids (they can block the steam valve), foil is fine (the manual wraps fish in it); open the lid slowly, the steam is hot. **No delay timer** with raw meat or coconut milk in the pot: the manual warns against long timers with perishables. **Reishunger does not recommend milk rice, risotto or paella rice in this cooker.** The coconut rice here is long-grain jasmine rice in coconut milk and water, a pilaf, not a milk rice. **Safety (B. cereus).** Spores survive boiling and the toxin survives reheating, so cooked rice is kept either ≥60 °C or chilled to ≤4 °C (Singapore Food Agency). The manual allows keep-warm for 24 h but gives no temperature `[INFERENCE: unverified]`, so the rule stays: eat from keep-warm only if the rice is still steaming when you lift the lid, within ~4 h; otherwise spread it flat, fridge within 1 h, eat within 3 days, and reheat once in a pan or microwave until steaming throughout (not on keep-warm)."},{"title":"Label check","text":"Jasmin Reis: BON-RI 1 kg (the Basmati page on aldi-sued.de has a typo in its protein row, so use the Jasmin panel: 350 kcal, 6,8 g protein). Kokosnussmilch: the can should list coconut and water (guar gum is fine) and no sugar; 'fettreduziert' is a separate Aldi product. Soy sauce: KIKKOMAN naturally brewed (water, soybeans, wheat, salt). Minutensteaks: plain 'natur', not marinated or 'gewürzt'. Quark is eaten sweet only."}]},{"id":"Q","name":"Carnitas with frijoles refritos & salsa de chiltepín","knob":"porkGulasch","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":0,"sunflower":35,"proteinWrap":120,"porkGulasch":142,"kidney":145,"hirtenkaese":35,"spitzpaprika":60,"tomato":70,"onion":40,"cilantro":4,"lime":10},"lock":{"bread":150,"oil":10,"veg":0,"solveKnob":false},"hue":335,"family":"pork","mealOf":{"oil":"Lunch","appleSnack":"Dinner"},"breadMeals":{"Breakfast":75,"Dinner":75},"meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Carnitas tacos de harina with frijoles refritos, queso fresco & salsa de chiltepín tatemada** — Carnitas: take one portion of the Sunday batch (142 g raw Gulasch vom Schwein, braised and pulled, see the notes) and crisp it 4–5 min in a hot pan with 5 ml rapeseed oil, pressed flat and turned once, until the edges are dark gold (or 5 min in the air fryer at 200 °C); grind black pepper over. Frijoles: chop 40 g onion fine and keep half of it raw. Soften the other half 3 min in 5 ml oil, add 145 g drained kidney beans, 3 tbsp water and a pinch of salt, mash with a fork (or blitz with the stick blender) and fry 3–4 min, stirring, until the paste holds a line when you drag the spoon through it; crumble 35 g Hirtenkäse over the top. Rajas: cut 60 g pointed red pepper into strips and blister them 6 min in the air fryer at 200 °C (or in a dry pan). Salsa: char 70 g Datteltomaten and 1 unpeeled garlic clove 8–10 min in the air fryer at 200 °C until black in spots, peel the garlic, and blend both with the stick blender with ~0,5 g **chiltepín** (about 5 pods, toasted and crushed; start with 3) and a pinch of salt. Warm 3 Protein-Wraps (120 g) 20 s a side in a dry pan, fill them with beans, carnitas and pepper strips, and top with the raw onion, 4 g chopped cilantro and 10 ml lime juice; spoon the salsa on as you eat.","Dinner":"**Peanut-cinnamon quark with toast soldiers & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 2 slices (75 g) Vollkorn-Sandwichtoast, cut into soldiers and dip them, then finish with half an apple (70 g)."},"notes":[{"title":"Why this menu","text":"**Carnitas from the cheapest fresh meat protein at Aldi.** Gulasch vom Schwein XXL costs €4,99/kg with 21 g protein per 100 g (€23,8 per kg of protein), and one 1 kg pack is exactly 7 × 142 g. Michoacán carnitas are pork shoulder and belly cooked slowly in lard (Casa de México: 1,5 kg pork and 500 g belly in 1 kg lard, with orange, milk, garlic and bay, about 1 h 50); this pack is cut from the leg, 4 % fat, and is braised in water with garlic and bay, then crisped in 5 ml oil. It is leaner and drier than taquería carnitas, so the crisping, the beans and the salsa are not optional. Four cans of kidney beans are 7 × 145 g; one pack each of Hirtenkäse (7 × 35 g), Datteltomaten (7 × 70 g) and pointed peppers (7 × 60 g of ~440 g edible) covers the week. Aldi lists no corn tortillas, so these are tacos de harina on Protein-Wraps. The menu has no eggs. Lime, cilantro and garlic are not listed online: their prices are estimates. Estimates from USDA/BLS reference values `[INFERENCE]`: iron ~15 mg, zinc ~15 mg, calcium ~900 mg, magnesium ~510 mg, vitamin C ~100 mg, folate ~400 µg; calcium and vitamin C sit a little under the DGE figures (1000 mg, 110 mg)."},{"title":"Weekly schedule","text":"**Sunday, carnitas for the week:** cut the 1 kg of Gulasch into ~4 cm pieces, put it in a pot with 1 tsp salt, 4 peeled garlic cloves, 300 ml water and 1 bay leaf per 500 g; lid on, barely simmer 60–75 min until a piece pulls apart with a fork (leg meat turns dry if it boils hard). Take the lid off, cook the liquid away, pull the meat into rough shreds, weigh it and split it into 7 equal boxes: each is one 142 g raw portion. Fridge for Sun–Wed, freeze Thu–Sat flat. **Beans:** all 4 cans can be mashed and fried in one go with 140 g onion and 35 ml oil (7 portions; fridge 4, freeze 3) and the Hirtenkäse crumbled on when you reheat. **Salsa:** make it on Sunday and again on Wednesday or Thursday from 245 g Datteltomaten, 3 garlic cloves and ~1,5 g chiltepín; it keeps 4 days in a closed jar in the fridge. **Wraps:** 21 a week is 3 packs of 8; freeze the 3 spare."},{"title":"Carry to uni","text":"The evening before: crisp the carnitas, warm the wraps, spread each with beans and cheese, add the carnitas and pepper strips, roll them closed and wrap each in foil; fridge overnight. Whatever beans do not fit go in the lunch box as a side. Stir the raw onion, cilantro and lime juice into the salsa and carry it in a small jar, so the wraps stay dry until you eat. On days at home, eat them hot as open tacos."},{"title":"Food safety","text":"Pork must be cooked through: no pink, juices clear. Cool cooked meat and beans spread out and box them in the fridge within 1 h; eat fridge portions within 3 days and freeze the rest flat on the day they are cooked. Thaw frozen portions in the fridge overnight, reheat once only, until steaming throughout. A carried lunch leaves the fridge with a frozen cool pack and is eaten within ~4 h; bin what is left."},{"title":"Air fryer & chiltepín","text":"The air-fryer times are estimates `[INFERENCE]` for a basket of 5 L or more and have not been tested on your model: look at the lower time and go by colour. Chiltepín is brutally hot: start with the smaller number of pods, taste a drop, then add. Toast the pods 15 s in a dry pan (open the window), crush them with the back of a spoon, wash your hands and keep them away from your eyes."}]},{"id":"S","name":"Discada norteña burritos with frijoles & salsa macha","knob":"porkGulasch","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":0,"sunflower":35,"proteinWrap":120,"porkGulasch":71,"bratwurst":42,"bacon":40,"kidney":145,"saureSahne":28,"spitzpaprika":60,"tomato":70,"onion":40,"mozzarella":35},"lock":{"bread":150,"oil":5,"veg":0,"solveKnob":false},"hue":305,"family":"pork","mealOf":{"oil":"Lunch","appleSnack":"Dinner","bacon":"Lunch"},"breadMeals":{"Breakfast":75,"Dinner":75},"meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Discada norteña burritos with frijoles puercos, crema & salsa macha** — Cut 40 g Bacon-Streifen into 2 cm pieces, start them in a cold wide pan and render 5 min on medium until crisp; push them to the edge. On high heat brown 71 g Gulasch vom Schwein, cut into 1,5 cm cubes and salted, 6–8 min in the bacon fat; push it aside. Brown 42 g Schweine-Bratwurst in 5 mm coins 3–4 min. Add 40 g onion and 60 g pointed red pepper, both diced, and fry 3 min, then stir everything together with 70 g Datteltomaten, chopped, 1 chopped garlic clove and 4 tbsp water; simmer 10–15 min until the liquid is thick and the pork is tender, and season with black pepper (the bacon and sausage bring the salt). Frijoles puercos: spoon 1 tsp of the fat from the pan into a small pot, add 145 g drained kidney beans and 3 tbsp water, mash with a fork (or the stick blender), fry 3–4 min and melt 35 g Mozzarella gerieben into them. Warm 3 Protein-Wraps (120 g) 20 s a side in a dry pan, spread them with the beans, add the discada, 28 g Saure Sahne and 1 tbsp salsa macha (5 ml of oil; the batch recipe is in the notes), and roll them up.","Dinner":"**Peanut-cinnamon quark with toast soldiers & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 2 slices (75 g) Vollkorn-Sandwichtoast, cut into soldiers and dip them, then finish with half an apple (70 g)."},"notes":[{"title":"Why this menu","text":"**The northern mixed-meat fry, rolled into burritos.** A discada is cooked on a plough disc from several meats at once; Grileros in Monterrey uses 500 g beef, 500 g pork, 300 g sausage and 200 g bacon with tomato, bell pepper, onion and garlic for 8–10 people. Here the meat is all pork (beef costs three times as much at Aldi) and Bratwurst stands in for the salchicha and chorizo: 71 g Gulasch, 42 g Bratwurst and 40 g bacon a day. The beans are frijoles puercos in the Sinaloa manner, fried in the pork fat with melting cheese, without the chorizo and pickled chiles of the original. **Packs:** the bacon (7 × 40 g), mozzarella (7 × 35 g), Saure Sahne (7 × 28 g), Datteltomaten, pointed peppers and 4 cans of beans are used up each week; the 1 kg Gulasch pack and the 600 g Bratwurst pack each last **two weeks** (14 × 71 g, 14 × 42 g), so half of each is frozen on shopping day. The menu has no eggs. Garlic is not listed online: its price is an estimate. Estimates from USDA/BLS reference values `[INFERENCE]`: iron ~15 mg, zinc ~14 mg, calcium ~1010 mg, magnesium ~500 mg, vitamin C ~100 mg, folate ~390 µg; zinc and vitamin C sit a little under the DGE figures (16 mg, 110 mg)."},{"title":"Weekly schedule","text":"**Shopping day:** freeze half of the Gulasch (500 g) and half of the Bratwurst (300 g) for next week. The discada reheats well, so cook it in two batches: Sunday for 4 days (284 g Gulasch, 168 g Bratwurst, 160 g bacon, 160 g onion, 240 g pointed pepper, 280 g Datteltomaten, 4 garlic cloves) and Wednesday evening for 3 days (213 g, 126 g, 120 g, 120 g, 180 g, 210 g, 3 cloves); weigh each batch and split it evenly. **Beans:** all 4 cans can be mashed and fried on Sunday (7 portions; fridge 4, freeze 3); melt the mozzarella in when you reheat. **Wraps:** 21 a week is 3 packs of 8; freeze the 3 spare."},{"title":"Salsa macha","text":"**One jar lasts three weeks.** The model is the Oregon State University Extension recipe: 1 cup oil, 10 garlic cloves, 15 chiles de árbol and 2 moritas, ½ cup peanuts, 2 tbsp sunflower seeds, 1 tbsp vinegar and ¼ tsp salt, kept up to a month in the fridge. With what Aldi sells: warm 105 ml rapeseed oil on medium-low and fry 4 sliced garlic cloves 2–3 min until pale gold. Take the pan off the heat and stir in 2 tbsp chili flakes and 1 tsp crushed chiltepín (they scorch in seconds: the oil must not smoke), then 30 g sunflower seeds from the breakfast bag, 1 tbsp apple vinegar and ½ tsp salt. Pulse 3–4 times with the stick blender so it stays coarse. That is 21 portions of 1 tbsp; each carries the 5 ml of oil counted in this day, plus ~1,5 g of seeds (~10 kcal) that are not in the totals. Keep the jar in the fridge and use a clean spoon."},{"title":"Carry to uni","text":"The evening before: reheat a portion of discada and of beans until steaming, fill and roll the 3 burritos with the Saure Sahne and salsa macha inside, wrap each in foil and put them in the fridge. They are eaten cold; the foil keeps them closed."},{"title":"Food safety","text":"Pork must be cooked through: no pink, juices clear. Cool cooked meat and beans spread out and box them in the fridge within 1 h; eat fridge portions within 3 days and freeze the rest flat on the day they are cooked. Thaw frozen portions in the fridge overnight, reheat once only, until steaming throughout. A carried lunch leaves the fridge with a frozen cool pack and is eaten within ~4 h; bin what is left."}]},{"id":"T","name":"Dogos estilo Sonora with frijoles & chile toreado","knob":"bratwurst","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":0,"sunflower":35,"bratwurst":200,"bacon":40,"hotDogBun":125,"kidney":145,"hirtenkaese":35,"spitzpaprika":60,"tomato":70,"onion":40,"chipotleMayo":10},"lock":{"bread":75,"oil":0,"veg":0,"solveKnob":false},"hue":22,"family":"pork","mealOf":{"oil":"Lunch","appleSnack":"Dinner","bacon":"Lunch"},"breadMeals":{"Breakfast":75},"meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Dogos estilo Sonora with frijoles, queso & chile toreado** — Wrap each of 2 Schweine-Bratwürste (200 g) in 2 strips of Bacon-Streifen (40 g in all), spiralling from one end to the other so the bacon covers the sausage. Lay them seam-side down in a cold pan and cook on medium 12–14 min, turning every 2–3 min, until the bacon is deep brown and the sausage is cooked through (no pink inside), or 12 min in the air fryer at 180 °C, turned once. Dice 40 g onion; soften half of it 4 min in the bacon fat and keep the other half raw. Warm 145 g drained kidney beans with 3 tbsp water, a pinch of salt and black pepper and crush them roughly with a fork. Blister 60 g pointed red pepper, whole or in wide strips, 5–6 min in the air fryer at 200 °C (or in the dry pan) and salt it: that is the chile toreado. Dice 70 g Datteltomaten. Warm 2 Hot-Dog-Brötchen (125 g) 2 min in the air fryer at 160 °C and slit them along the top without cutting through. Build each: sausage, beans, cooked onion, raw onion, tomato, a line of mustard, 5 g Chipotle-Mayo (10 g in all) and half of 35 g crumbled Hirtenkäse. Crush 3–4 **chiltepín** pods over the top and eat the chile on the side.","Dinner":"**Peanut-cinnamon quark with apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Dice half an apple (70 g) over the top. No toast tonight: the two buns at lunch are the day's bread."},"notes":[{"title":"Why this menu","text":"**The Sonoran hot dog: a bacon-wrapped sausage in a soft bun under beans, two kinds of onion, tomato, mustard, mayonnaise and salsa, with a blistered chile on the side.** The model is El Güero Canelo's recipe as published by Pati Jinich (for 4: 4 slices of bacon, 4 sausages, 1 cup chopped onion cooked in the fat, 4 chiles güeros, 4 buns, 1 cup pinto beans; on top raw onion, tomato, jalapeño salsa, mustard and mayonnaise). **Bratwurst, not wieners:** Aldi's Hot Dogs (375 g, €2,99) have 13 g protein per 100 g at €7,97/kg against 18 g at €4,48/kg for the Schweine-Bratwurst, and with wieners the day cannot reach its protein inside the calorie ceiling. Kidney beans stand in for pintos, the pointed red pepper for the chile güero, Hirtenkäse for cotija, and crushed chiltepín for the jalapeño salsa. This is the plan's richest lunch (about 1280 kcal), so the day has only the 2 breakfast toast slices and 10 g of mayonnaise; do not add more. **Packs:** bacon (7 × 40 g), Hirtenkäse (7 × 35 g), 4 cans of beans, Datteltomaten and the peppers are used up in the week; 14 sausages are 1400 g, so buy 7 packs of Bratwurst for 3 weeks and freeze what is not for the next 2 days. The 250 g bun pack holds 4 buns of 62,5 g (you checked), so 14 buns are 3½ packs; freeze the spare half pack. **Still to check on the pack:** how many sausages are in the 600 g Bratwurst pack (6 of ~100 g assumed `[INFERENCE]`; the Aldi page does not say). The bun panel lists no fiber; 2,5 g per 100 g is a reference value. Chipotle-Mayo is weighed in grams (the 250 ml bottle holds roughly 235 g `[INFERENCE]`); it is the only chipotle product Aldi lists. Estimates from USDA/BLS reference values `[INFERENCE]`: iron ~13 mg, zinc ~14 mg, calcium ~900 mg, magnesium ~445 mg, vitamin C ~100 mg, folate ~380 µg; zinc, calcium and vitamin C sit a little under the DGE figures (16 mg, 1000 mg, 110 mg)."},{"title":"Weekly schedule","text":"Shopping day: keep 4 Bratwürste in the fridge (2 days) and freeze the rest in pairs; move a pair to the fridge the evening before. Bacon keeps about a week once opened, which is this menu. The buns go stale within days: freeze them on shopping day and warm them from frozen, 3–4 min in the air fryer at 160 °C. Beans: all 4 cans can be crushed and warmed in one go (7 portions; fridge 4, freeze 3). Onion, tomato and the pepper are cut fresh each day; it takes 5 min."},{"title":"Carry to uni","text":"A built dogo does not travel: the bun soaks through. On uni days cook the wrapped sausages the evening before and carry them cold in a box with the beans, the cut onion and tomato in a second small box, and the buns in their bag; build them when you eat. The mustard and mayonnaise go on at home onto the sausage, not the bun. Best on days at home, straight from the pan."},{"title":"Food safety","text":"Pork must be cooked through: no pink, juices clear. Cool cooked meat and beans spread out and box them in the fridge within 1 h; eat fridge portions within 3 days and freeze the rest flat on the day they are cooked. Thaw frozen portions in the fridge overnight, reheat once only, until steaming throughout. A carried lunch leaves the fridge with a frozen cool pack and is eaten within ~4 h; bin what is left."},{"title":"Chiltepín","text":"Chiltepín is brutally hot: start with 2 pods per dogo, taste, then add. Crush them between your fingers over the food, then wash your hands and keep them away from your eyes."}]},{"id":"U","name":"Tacos de pescado zarandeado","knob":"pangasius","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":0,"sunflower":35,"pangasius":192,"proteinWrap":120,"chipotleMayo":20,"spitzpaprika":60,"cucumber":100,"redOnion":30,"lime":10},"lock":{"bread":262.5,"oil":5,"veg":0,"solveKnob":false},"hue":200,"family":"seafood","mealOf":{"oil":"Lunch","appleSnack":"Dinner"},"breadMeals":{"Breakfast":75,"Dinner":187.5},"meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Tacos de pescado zarandeado with cebolla morada, pepino & chile asado** — Thaw 192 g Pangasius-Filet overnight in the fridge and pat it very dry. Marinade: mix 20 g Chipotle-Mayo with 1 tsp mustard, 2 tsp soy sauce, 1 grated garlic clove, 1 tsp Paprika edelsüß, ½ tsp oregano, 5 ml lime juice, black pepper and 2–3 crushed **chiltepín** pods. Coat the fish on both sides and leave it 20 min in the fridge (overnight is fine). Brush the air-fryer basket with 5 ml rapeseed oil, lay the fillets in one layer and cook 10–12 min at 200 °C without turning, until the edges are charred and the thickest part flakes (or 3–4 min a side in a very hot non-stick pan). Put 60 g pointed red pepper in strips beside the fish for the last 6 min. Slice 30 g red onion paper-thin and steep it in the other 5 ml lime juice with a pinch of salt; cut 100 g cucumber into sticks. Warm 3 Protein-Wraps (120 g) 20 s a side in a dry pan, break the fish into large flakes over them and top with the onion, cucumber and pepper strips.","Dinner":"**Peanut-cinnamon quark with toast soldiers & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 5 slices (187,5 g) Vollkorn-Sandwichtoast, cut into soldiers and dip them, then finish with half an apple (70 g)."},"notes":[{"title":"Why this menu","text":"**Pescado zarandeado, the Nayarit and Sinaloa grilled fish, as tacos.** On the coast a whole snapper is butterflied, painted with a marinade and grilled over coals in a hinged rack that is shaken (zarandeado). The marinade follows Directo al Paladar's home version, which also allows an air fryer: for 2 fillets 100 ml mayonnaise, 8 ml soy sauce or Maggi, 2 garlic cloves, oregano, lime, a guajillo and a chile de árbol, with achiote for the red colour or sweet paprika if there is none. Here the Chipotle-Mayo is mayonnaise and chile in one, paprika gives the colour and chiltepín the heat; with far less mayonnaise than the original (20 g), because it is the day's fattest ingredient. **Fish:** Pangasius (900 g TK, €5,49, 84 kcal and 17 g protein per 100 g) is the cheapest fillet Aldi lists and stays moist under high heat; 14 × 192 g is 2688 g, so **3 packs last two weeks**. The pack does not state how much of the 900 g is ice glaze: weigh a thawed, dried portion once `[INFERENCE]`. Fish is lean, so this day has 7 toast slices (2 at breakfast, 5 at dinner). Chipotle-Mayo is weighed in grams (the 250 ml bottle holds roughly 235 g `[INFERENCE]`); it is the only chipotle product Aldi lists. Estimates from USDA/BLS reference values `[INFERENCE]`: iron ~15 mg, zinc ~13 mg, calcium ~760 mg, magnesium ~530 mg, vitamin C ~90 mg, folate ~400 µg; zinc, calcium and vitamin C are under the DGE figures (16 mg, 1000 mg, 110 mg), calcium by the most, because the day has no cheese."},{"title":"Weekly schedule","text":"Move the next day's 192 g from the freezer to the fridge each evening and marinate it then, so it is ready to cook. The marinade for the week can be mixed once (140 g Chipotle-Mayo, 7 tsp mustard, 14 tsp soy sauce, 7 garlic cloves, 7 tsp paprika, 3½ tsp oregano, 35 ml lime juice) and kept 5 days in a jar in the fridge. The red onion in lime keeps 3 days. One cucumber covers 4 days; the peppers are one pack a week."},{"title":"Carry to uni","text":"Cook the fish the evening before, cool it and box it; carry it cold with a frozen cool pack, with the onion, cucumber and pepper strips in the same box and the wraps separate, and fill the tacos when you eat. Cold zarandeado is good; reheating it in a microwave dries it out."},{"title":"Fish safety","text":"Thaw the fillets overnight in the fridge in a covered box on the bottom shelf, never on the counter, and pour off the thaw water. Cook until the thickest part is opaque and flakes. Cooked fish keeps 2 days in the fridge; do not refreeze fish that was thawed raw. A carried lunch leaves the fridge with a frozen cool pack and is eaten within ~4 h; bin what is left. Wash board, knife and hands after raw fish."},{"title":"Air fryer & chiltepín","text":"The air-fryer times are estimates `[INFERENCE]` for a basket of 5 L or more and have not been tested on your model: look at the lower time and go by colour. Chiltepín is brutally hot: start with the smaller number of pods, taste a drop, then add. Toast the pods 15 s in a dry pan (open the window), crush them with the back of a spoon, wash your hands and keep them away from your eyes."}]},{"id":"V","name":"Tacos de chicharrón de panza with frijoles","knob":"porkBelly","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":0,"sunflower":35,"porkBelly":85,"porkXXL":57,"kidney":145,"proteinWrap":120,"spitzpaprika":60,"tomato":70,"onion":40,"cilantro":4,"lime":10},"lock":{"bread":187.5,"oil":0,"veg":0,"solveKnob":false},"hue":8,"family":"pork","mealOf":{"oil":"Lunch","appleSnack":"Dinner"},"breadMeals":{"Breakfast":75,"Dinner":112.5},"meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Tacos de chicharrón de panza with maciza, frijoles & salsa de chiltepín tatemada** — Pat 85 g Schweine-Bauchscheiben dry, cut them into 2 cm pieces, salt them and spread them in one layer in the air-fryer basket: 18–22 min at 200 °C, shaken twice, until deep golden, blistered and crisp (pour off the fat in the drawer halfway and keep 1 tsp). For the last 8–10 min put 70 g Datteltomaten and 1 unpeeled garlic clove beside them to char, and 60 g pointed red pepper in strips for the last 6. Cut 57 g Schwein-Minutensteaks into strips, salt them and sear them 1–2 min in a very hot pan in the teaspoon of belly fat until browned and no longer pink: this is the lean maciza. Chop belly and steak together on the board, the way a taquero does. Salsa: peel the garlic and blend it with the charred tomatoes, ~0,5 g **chiltepín** (about 5 pods, toasted and crushed; start with 3) and a pinch of salt with the stick blender. Warm 145 g drained kidney beans with 3 tbsp water, salt and black pepper and crush them with a fork. Warm 3 Protein-Wraps (120 g) 20 s a side in a dry pan, spread them with the beans, add the chopped pork and the pepper strips, and top with 40 g onion, diced fine, 4 g chopped cilantro and 10 ml lime juice; spoon the salsa over.","Dinner":"**Peanut-cinnamon quark with toast soldiers & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 3 slices (112,5 g) Vollkorn-Sandwichtoast, cut into soldiers and dip them, then finish with half an apple (70 g)."},"notes":[{"title":"Why this menu","text":"**Crisp pork belly in a taco, with a sharp salsa to cut the fat.** Schweine-Bauchscheiben (600 g, €4,99) have 293 kcal and only 17 g protein per 100 g, so belly alone cannot carry a day's protein inside the calorie ceiling. The taco is therefore ordered surtida, as at a carnitas stand: 85 g of crisp panza chopped together with 57 g of lean maciza (Schwein-Minutensteak). **Packs:** one belly pack is 7 × 85 g; the 800 g XXL steak pack is 14 × 57 g, so it lasts **two weeks** and half is frozen on shopping day; 4 cans of beans, one pack of Datteltomaten and one of peppers a week. No oil is added: the belly renders its own fat, and the calories are counted for the raw weight, so what you pour off is a margin in your favour. The air-fryer time follows a tested table for supermarket belly slices (The Scatty Mum: 17–20 min at 200 °C for thin slices, 20–25 for standard, 25–35 for thick); 2 cm pieces are at the short end `[INFERENCE]`. Estimates from USDA/BLS reference values `[INFERENCE]`: iron ~15 mg, zinc ~13 mg, calcium ~750 mg, magnesium ~510 mg, vitamin C ~100 mg, folate ~400 µg; zinc, calcium and vitamin C are under the DGE figures (16 mg, 1000 mg, 110 mg), calcium by the most, because the day has no cheese."},{"title":"Weekly schedule","text":"Shopping day: cut the belly pack into 7 × 85 g and the steak pack into 14 × 57 g; keep 2 of each in the fridge and freeze the rest flat, moving a portion of each to the fridge the evening before. The salsa can be made for 3–4 days at once (it keeps 4 days in a closed jar in the fridge). Beans: all 4 cans can be crushed and warmed in one go (7 portions; fridge 4, freeze 3). The chicharrón is best made fresh; the whole lunch takes about 25 min, most of it unattended."},{"title":"Carry to uni","text":"Chicharrón goes soft in a closed box. Either cook it in the morning (the air fryer does it while you get ready) and carry it in a box with a sheet of kitchen paper, or cook it the evening before and put it back in the air fryer for 3 min at 200 °C before you leave. Pack the beans, the pork, the salsa jar and the wraps separately and fill the tacos when you eat."},{"title":"Food safety","text":"Pork must be cooked through: no pink, juices clear. Cool cooked meat and beans spread out and box them in the fridge within 1 h; eat fridge portions within 3 days and freeze the rest flat on the day they are cooked. Thaw frozen portions in the fridge overnight, reheat once only, until steaming throughout. A carried lunch leaves the fridge with a frozen cool pack and is eaten within ~4 h; bin what is left."},{"title":"Air fryer & chiltepín","text":"The air-fryer times are estimates `[INFERENCE]` for a basket of 5 L or more and have not been tested on your model: look at the lower time and go by colour. Chiltepín is brutally hot: start with the smaller number of pods, taste a drop, then add. Toast the pods 15 s in a dry pan (open the window), crush them with the back of a spoon, wash your hands and keep them away from your eyes."}]},{"id":"W","name":"Gringas al pastor with piña","knob":"porkXXL","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":0,"sunflower":35,"porkXXL":114,"mozzarella":35,"pineapple":48,"proteinWrap":120,"tomato":70,"onion":40,"cilantro":4,"lime":10,"spitzpaprika":60},"lock":{"bread":262.5,"oil":5,"veg":0,"solveKnob":false},"hue":318,"family":"pork","mealOf":{"oil":"Lunch","appleSnack":"Dinner"},"breadMeals":{"Breakfast":75,"Dinner":187.5},"meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Gringas al pastor with piña, chiles toreados & salsa de chiltepín tatemada** — The evening before, cut 114 g Schwein-Minutensteaks into strips 5 mm thick and coat them with one portion of the adobo (the weekly batch is in the notes). For a single portion: stir 2 tsp pul biber and 1 tsp Paprika edelsüß into 1 tbsp of just-boiled water and leave 5 min, then mix in 2 tsp apple vinegar, 1 tbsp of the juice from the pineapple can, ½ grated garlic clove and ½ tsp oregano to a thick paste; taste it before adding any salt, because pul biber is usually salted. Fridge overnight (at least 4 h). Salsa: char 70 g Datteltomaten and 1 unpeeled garlic clove 8–10 min in the air fryer at 200 °C with 60 g Spitzpaprika, whole, beside them; peel the garlic and blend it with the tomatoes, ~0,5 g **chiltepín** (about 5 pods, toasted and crushed; start with 3) and a pinch of salt. Dress the blistered Spitzpaprika with 5 ml lime juice, a few drops of soy sauce and salt: those are the chiles toreados. Heat a pan until very hot with 5 ml rapeseed oil, spread the pork out and leave it 2 min without moving, then toss 1–2 min more until the edges are nearly black; add 48 g Ananas-Stücke for the last minute so they brown, then chop everything small on the board. Gringas: scatter 35 g Mozzarella gerieben over one half of each of 3 Protein-Wraps (120 g), add the pastor and pineapple, fold, and press 60–90 s a side in the dry pan until crisp and the cheese has melted. Open them and add 40 g onion, diced fine, 4 g chopped cilantro and the other 5 ml lime juice; spoon the salsa on as you eat.","Dinner":"**Peanut-cinnamon quark with toast soldiers & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 5 slices (187,5 g) Vollkorn-Sandwichtoast, cut into soldiers and dip them, then finish with half an apple (70 g)."},"notes":[{"title":"Why this menu","text":"**A gringa is al pastor and melted cheese in a flour tortilla, so the wrap is the right tortilla here.** Al pastor descends from the shawarma that Lebanese immigrants brought to Puebla: pork in a red adobo, roasted on a vertical spit with pineapple. Gran Receta's home version blends toasted guajillo and ancho chiles with achiote paste, pineapple juice, vinegar, garlic and spices, coats 1 kg of pork shoulder cut 5 mm thick, rests it 12 h, and sears it in small batches on maximum heat, 2 min without moving. **The adobo uses your acı pul biber in place of the guajillo and ancho.** It is scaled from that recipe, which takes per 1 kg of pork 62 g of dried chiles, 50 g of achiote paste, 120 ml pineapple juice, 60 ml vinegar, 3 garlic cloves, oregano, cumin and 2 cloves; here ~30 g of flakes go on the 800 g pack, bloomed in hot water and blended to a paste, and Paprika edelsüß stands in for the achiote's colour, the substitute the source itself gives. Pul biber is an Aleppo-type flake: fruity like guajillo, often hotter (published figures run from ~2.500 to ~10.000 Scoville against ~5.000 for guajillo and ~1.000 for ancho), and usually packed with a little salt and oil, so salt the paste only after tasting it. What is still missing is the earthy note of achiote and the cumin and cloves of the original: if you have them, add ½ tsp ground cumin (kimyon) and 2 cloves to the weekly batch. **If Cristina's Colmado has achiote paste, tell me the pack size and price and it goes in.** Thin Minutensteaks replace shoulder because they are already cut for it and are the cheaper lean pork. **Packs, all used up in the week:** the 800 g XXL steak pack (7 × 114 g), mozzarella (7 × 35 g), one can of pineapple (340 g drained, 7 × 48 g, and its juice for the adobo), Datteltomaten and one pack of Spitzpaprika. The chiles toreados are there for the vitamin C as much as for the plate: without them this day has ~30 mg. Estimates from USDA/BLS reference values `[INFERENCE]`: iron ~15 mg, zinc ~15 mg, calcium ~990 mg, magnesium ~535 mg, vitamin C ~105 mg, folate ~390 µg."},{"title":"Weekly schedule","text":"Shopping day, adobo for the week: put 4½ tbsp pul biber (~30 g) and 2 tbsp Paprika edelsüß in a tall cup, pour 100 ml of just-boiled water over them and leave 10 min. Add 70 ml apple vinegar, 100 ml of the juice from the pineapple can, 3 garlic cloves and 1 tbsp oregano and blend 1 min with the stick blender to a thick, smooth paste; taste, then salt (up to 1 tsp). Slice the whole 800 g pack, coat it with the paste and split it into 7 bags of ~125 g; 2 in the fridge, 5 frozen flat, each moved to the fridge the evening before. The meat marinates as it thaws. Tip the drained pineapple into a jar: it keeps 5 days in the fridge, so freeze the last 2 portions. The salsa can be made for 3–4 days at once. Searing the pork smokes: open the window."},{"title":"Carry to uni","text":"Fold and press the 3 gringas in the evening while the pastor is hot, so the cheese seals them; cool, wrap in foil, fridge overnight, and eat them cold. The onion, cilantro and lime go into the salsa jar, and the chiles toreados into the same box."},{"title":"Food safety","text":"Pork must be cooked through: no pink, juices clear. Cool cooked meat and beans spread out and box them in the fridge within 1 h; eat fridge portions within 3 days and freeze the rest flat on the day they are cooked. Thaw frozen portions in the fridge overnight, reheat once only, until steaming throughout. A carried lunch leaves the fridge with a frozen cool pack and is eaten within ~4 h; bin what is left."},{"title":"Air fryer & chiltepín","text":"The air-fryer times are estimates `[INFERENCE]` for a basket of 5 L or more and have not been tested on your model: look at the lower time and go by colour. Chiltepín is brutally hot: start with the smaller number of pods, taste a drop, then add. Toast the pods 15 s in a dry pan (open the window), crush them with the back of a spoon, wash your hands and keep them away from your eyes."}]},{"id":"X","name":"Tacos de pescado estilo Baja","knob":"seelachs","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":0,"sunflower":35,"seelachs":214,"paniermehl":25,"chipotleMayo":25,"proteinWrap":120,"redCabbage":100,"tomato":70,"onion":20,"cilantro":4,"lime":10},"lock":{"bread":225,"oil":5,"veg":0,"solveKnob":false},"hue":215,"family":"seafood","mealOf":{"oil":"Lunch","appleSnack":"Dinner"},"breadMeals":{"Breakfast":75,"Dinner":150},"meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Tacos de pescado estilo Baja with crema de chipotle, col & pico de gallo** — Thaw 214 g Alaska-Seelachsfilet overnight in the fridge, press it dry between sheets of kitchen paper, cut it into finger-wide strips and salt them. Brush the strips thinly with 10 g Chipotle-Mayo, then press them into 25 g Paniermehl mixed with ½ tsp Paprika edelsüß. Brush the air-fryer basket and the top of the fish with 5 ml rapeseed oil and cook 8–10 min at 200 °C, turned once, until golden and crisp. Shred 100 g red cabbage as fine as you can and toss it with a pinch of salt and 5 ml lime juice. Pico de gallo: dice 70 g Datteltomaten and 20 g onion fine and mix with 4 g chopped cilantro, the other 5 ml lime juice, salt and 2–3 crushed **chiltepín** pods. Warm 3 Protein-Wraps (120 g) 20 s a side in a dry pan and build: cabbage, fish, a zigzag of the remaining 15 g Chipotle-Mayo, pico de gallo.","Dinner":"**Peanut-cinnamon quark with toast soldiers & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 4 slices (150 g) Vollkorn-Sandwichtoast, cut into soldiers and dip them, then finish with half an apple (70 g)."},"notes":[{"title":"Why this menu","text":"**The Ensenada fish taco: crisp white fish, raw cabbage, a creamy sauce and pico de gallo.** Casa de México's recipe for 8 uses 1 kg of white fish in a beer batter seasoned with paprika and garlic, deep-fried, with 4 cups of shredded cabbage, 1 cup of crema, pico de gallo with serrano, and 24 tortillas of corn or flour. **What is different here:** a breadcrumb coat in the air fryer instead of batter in a pot of oil, so the fish is crisp but not puffed like a real capeado; Chipotle-Mayo is both the glue for the crumbs (no egg needed) and the crema; chiltepín replaces the serrano. **Fish:** Alaska Seelachs (1 kg TK, €6,29, 65 kcal and 15 g protein per 100 g) is the flaky white fish these tacos are made of; 14 × 214 g is 2996 g, so **3 packs last two weeks**. Red cabbage is sold loose (€0,88/kg): 700 g a week, and a cut head keeps about 3 weeks wrapped in the fridge. Paniermehl (1 kg, €1,49) lasts 5–6 weeks. Chipotle-Mayo is weighed in grams (the 250 ml bottle holds roughly 235 g `[INFERENCE]`); it is the only chipotle product Aldi lists. The fillets may carry ice glaze: weigh a thawed, dried portion once `[INFERENCE]`. Estimates from USDA/BLS reference values `[INFERENCE]`: iron ~15 mg, zinc ~12 mg, calcium ~790 mg, magnesium ~560 mg, vitamin C ~80 mg, folate ~375 µg; zinc, calcium and vitamin C are under the DGE figures (16 mg, 1000 mg, 110 mg)."},{"title":"Weekly schedule","text":"Move the next day's 214 g from the freezer to the fridge each evening. The cabbage can be shredded for 3 days at once and kept undressed in a box; dress it just before eating. Pico de gallo is made daily: it weeps within a day. Crumbing and cooking the fish takes 15 min."},{"title":"Carry to uni","text":"Crumbed fish loses its crunch in a closed box, so this menu is best on days at home. To carry it: cook the fish in the morning, let it cool uncovered for 10 min, and pack it on kitchen paper in its own box with a frozen cool pack; cabbage, pico de gallo, the Chipotle-Mayo in a small jar and the wraps go separately, and the tacos are built when you eat."},{"title":"Fish safety","text":"Thaw the fillets overnight in the fridge in a covered box on the bottom shelf, never on the counter, and pour off the thaw water. Cook until the thickest part is opaque and flakes. Cooked fish keeps 2 days in the fridge; do not refreeze fish that was thawed raw. A carried lunch leaves the fridge with a frozen cool pack and is eaten within ~4 h; bin what is left. Wash board, knife and hands after raw fish."},{"title":"Air fryer & chiltepín","text":"The air-fryer times are estimates `[INFERENCE]` for a basket of 5 L or more and have not been tested on your model: look at the lower time and go by colour. Chiltepín is brutally hot: start with the smaller number of pods, taste a drop, then add. Toast the pods 15 s in a dry pan (open the window), crush them with the back of a spoon, wash your hands and keep them away from your eyes."}]},{"id":"Y","name":"Pork-ginger potstickers with ginger-soy pork & greens","knob":"porkXXL","bread":"vollkornSandwich","dairy":"quark","dairyPerDay":500,"fixed":{"eggs":0,"sunflower":35,"hackSchwein":114,"porkXXL":114,"dumplingWrap":71,"chinakohl":114,"freshGinger":14,"springOnion":14,"broccoli":107,"spitzpaprika":60},"lock":{"bread":262.5,"oil":10,"veg":0,"solveKnob":false},"hue":260,"family":"pork","mealOf":{"oil":"Lunch","appleSnack":"Dinner"},"breadMeals":{"Breakfast":75,"Dinner":187.5},"meals":{"Breakfast":"**Cinnamon emmer quark with toasted seeds** — Stir 50 g Emmerflocken into 250 g Magerquark with 3 tbsp water, cinnamon and 1 sweetener tablet (overnight in the fridge gives a softer set). Dry-toast 35 g sunflower seeds until they crackle and smell nutty, then dice half an apple (70 g) over the top. Toast 2 slices (75 g) Vollkorn-Sandwichtoast and drag them through the quark.","Lunch":"**Pork-ginger potstickers with ginger-soy pork, cabbage & broccoli** — Take one bag from the freezer: 71 g of wrappers folded round 114 g of Hackfleisch filling, about 9–10 dumplings (the weekly batch is in the notes). Heat 5 ml rapeseed oil in a lidded non-stick pan on medium-high, set the dumplings in frozen, flat side down and not touching, and brown the bottoms 2–3 min. Add 3 tbsp water, cover at once, turn to low and steam 6–8 min; lift the lid for the last minute so the water cooks off and the bottoms crisp again. Cut one open: the pork must be grey all through and steaming, no pink. While they steam, slice 114 g Schwein-Minutensteaks across the grain 5 mm thin and toss them with 1 tsp soy sauce and 3 g grated fresh ginger. In a second pan heat 5 ml rapeseed oil on max heat, sear the pork 90 s, add 60 g pointed red pepper in strips, 64 g shredded Chinakohl and 107 g TK broccoli straight from the freezer, and toss 3 min with a splash of water and the lid on. Dip: stir 1 tsp soy sauce, 2 tsp apple vinegar, a pinch of chili flakes, 3 g grated fresh ginger and 1 tsp water.","Dinner":"**Peanut-cinnamon quark with toast soldiers & apple** — Whisk 25 g Erdnusscreme with 2 tbsp hot water, 1 sweetener tablet and a good pinch of cinnamon until loose, then fold through 250 g Magerquark until mousse-like (no salt, no soy: the quark stays sweet). Toast 5 slices (187,5 g) Vollkorn-Sandwichtoast, cut into soldiers and dip them, then finish with half an apple (70 g)."},"notes":[{"title":"Why this menu","text":"**Your 2 × 250 g of wrappers, 71 g a day: 497 g over 7 days, so both packs are gone in exactly one week.** The filling is the usual pork-and-cabbage one: Chinakohl salted and squeezed so it does not turn watery, then pork mince, fresh ginger, scallion, garlic and soy mixed by hand until sticky. Grounding: CJ Eats (1 lb pork, 1 lb napa, 3 scallions, 3 garlic cloves, 1 tbsp ginger, 1 tbsp soy, ~50 dumplings, 1 tbsp filling each, brown 2–3 min then steam covered) and The Kitchn (1 lb pork, ½ napa, scallions, 3 tbsp ginger, 70–80 dumplings, 6–8 min covered when cooked from frozen). **Mince alone cannot carry the protein:** Schweine-Hackfleisch is 18 g protein / 234 kcal per 100 g, so 114 g gives only 20,5 g, and the wrappers are ~9 % protein. The second pork is the sliced Minutensteak (23 g / 119 kcal) in the stir-fry, which brings the day to 162 g under the calorie ceiling; both packs are 800 g = 7 × 114 g, whole packs. **Eggs instead of the steak cost more:** an egg is ~€32 per kg of protein against ~€26 for the steak and carries 2,3 × the kcal per gram of protein, so 4 eggs a day force the toast down to 5 slices and the day comes to €5,29 against €5,16 (28 eggs a week, two 18-packs). **Wrapper facts:** €2,49 a pack is the price you gave; 285 kcal / 9 g protein / 2 g fiber per 100 g are `[INFERENCE]` until you send the panel from the pack. €5,16 a day, or about €4,45 if the wrappers count as already paid. Estimates from USDA/BLS reference values `[INFERENCE]`: calcium ~950 mg (just under 1000), iron ~17 mg, zinc ~18 mg, magnesium ~580 mg, vitamin C ~135 mg (most of it from the pointed red pepper), folate ~590 µg."},{"title":"Dumpling batch (once a week)","text":"Buy the mince on the batch day (it keeps 1 day) and fold everything in one go, about 1 h 15 min. **Filling for the whole 800 g pack:** chop 350 g Chinakohl fine, toss with 1 tbsp salt, leave 15 min and squeeze it dry in a clean tea towel (~250 g is left). Mix by hand in one direction until sticky, about 2 min: the cabbage, 800 g Schweine-Hackfleisch, 98 g scallions (the whole bunch) sliced thin, 56 g fresh ginger grated, 7 garlic cloves minced, 35 ml soy sauce, 1 tsp salt and 1 tsp black pepper. Fry one spoonful 1 min and taste: the wrapper is plain, so the filling has to be well seasoned. **Fold:** keep the wrappers under a damp tea towel (they dry and crack within minutes), put about 18 g (a heaped tablespoon) in the middle of each, wet the rim, fold and pleat shut; do not overfill. Lay them on parchment-lined trays without touching, freeze at least 1 h, then count them and bag them in 7 equal bags (about 10 dumplings, 71 g of wrappers each). **Count check:** the filling is ~1270 g, so it is 18 g a dumpling if the 2 packs give ~70 wrappers (7 g each). Weigh 10 wrappers: if a dumpling would need more than ~22 g, fold fewer per bag and pan-fry the surplus filling as a patty beside the stir-fry rather than overstuffing. **Lean pork:** slice the whole 800 g Minutensteak pack 5 mm thin and split it into 7 bags of 114 g; 2 in the fridge, 5 frozen flat, each moved to the fridge the evening before. The Chinakohl head keeps 2 weeks in the fridge; the rest of the 800 g (448 g) goes into the stir-fries. Kit: a lidded non-stick pan (28 cm) for the dumplings, a second pan or wok, 2 trays + parchment, freezer bags, a grater for the ginger. The air fryer is not used."},{"title":"Carry to uni","text":"Cook both pans in the morning, about 20 min from frozen. Pack the stir-fry first and the dumplings on top; the dip goes in a small jar. Thermos: preheat it 5 min with boiling water, fill it piping hot and eat within ~4 h while it is still above 60 °C. Otherwise cool everything within 1 h, pack it with a frozen cool pack, eat within ~4 h and reheat only until steaming (whether the uni has a microwave is unknown); the crisp bottoms will have gone soft."},{"title":"Food safety","text":"Raw pork mince: fridge, and fold or freeze it within 1 day of buying; the folded dumplings go into the freezer within 2 h. Never thaw the dumplings (they stick and tear): cook them from frozen until the pork is grey all through and steaming (core ≥ 70 °C, no pink; cut one open). Wash hands, board and tray after the raw pork before you touch the wrapper pack again."},{"title":"Label check","text":"Wrappers (Teigblätter / Gyoza-Teig): the ingredients should be wheat flour, water, salt (and some starch for dusting); the panel on the pack replaces my 285 kcal / 9 g protein / 2 g fiber, and the number of wrappers per pack replaces the 7 g each guessed above. Pork: take the MEINE METZGEREI Schweine-Hackfleisch 800 g (234 kcal / 18 g protein per 100 g), not Hackfleisch gemischt, and the plain natur Minutensteaks XXL. Soy sauce: the naturally brewed KIKKOMAN lists only water, soybeans, wheat, salt. Fresh ginger, scallions and Chinakohl are not in Aldi's online range, so their prices are `[INFERENCE]`; if there is no Chinakohl, Spitzkohl or Weißkohl takes the same grams."}]}];
+const CONS = {"proteinTarget":158.5,"kcalMin":2251,"kcalMax":2457,"fiberMin":30,"vegBase":448,"vegMax":750,"vegLunchShare":0.766,"vegMix":{"onion":125,"carrot":150,"leek":60,"tomatoes":100,"garlic":13},"vegPacks":{"onion":{"label":"Speisezwiebeln gelb 1,5kg","price":1.39,"edible":1500,"aisle":"produce","keeps":42,"freeze":false},"carrot":{"label":"Bio Naturland Karotten 1kg","price":1.11,"edible":1000,"aisle":"produce","keeps":21,"freeze":false},"leek":{"label":"Porree, Stück (~350g)","price":0.49,"edible":350,"aisle":"produce","keeps":12,"freeze":true},"tomatoes":{"label":"Tomaten gehackt 400g","price":0.59,"edible":400,"aisle":"dry","keeps":365,"freeze":false},"garlic":{"label":"Knoblauch 200g","price":0.69,"edible":200,"aisle":"produce","keeps":42,"freeze":false}},"staples":{"dairyPerDay":400,"emmer":50,"pb":25,"apple":140,"eggsDefault":110},"scrapedOn":"2026-09-17","aisles":[["produce","Obst & Gemüse"],["bread","Brot & Backwaren"],["dry","Trocken, Konserven, Öl, Kaffee"],["dairy","Kühlregal: Molkerei & Eier"],["meat","Kühlregal: Fleisch"],["frozen","Tiefkühl"]],"pantry":{},"spices":{"salt":{"label":"Jodsalz mit Fluorid 500g","price":0.29,"size":"500 g","keeps":3650,"keywords":["salt"],"note":"cooking","short":"Salt"},"pepper":{"label":"Pfeffer schwarz gemahlen 100g","price":0.99,"size":"100 g","keeps":730,"keywords":["pepper","pfeffer"],"note":"cooking","short":"Black pepper"},"paprika":{"label":"Paprika edelsüß gemahlen 50g (LE GUSTO)","price":0.75,"size":"50 g","keeps":730,"keywords":["paprika"],"note":"eggs, broccoli, roast chicken","short":"Paprika"},"chili":{"label":"Chili Nachfüllbeutel 35g (LE GUSTO)","price":0.99,"size":"35 g","keeps":730,"keywords":["chili"],"note":"broccoli, eggs, cheese toast","short":"Chili flakes"},"mustard":{"label":"Senf mittelscharf 250ml (DELIKATO)","price":0.59,"size":"250 ml","keeps":90,"keywords":["mustard"],"note":"egg salad, sausages, fries","short":"Mustard"},"cinnamon":{"label":"Zimt gemahlen, pure (not in Aldi Süd's online range; any supermarket)","price":1.29,"size":"~40 g","keeps":730,"keywords":["cinnamon"],"note":"breakfast quark, sweet dinners. ~€1–1,50 [INFERENCE]. NOT the DIAMANT Zimtstreuer: that is cinnamon sugar (99 g sugar/100 g)","short":"Cinnamon"},"soy":{"label":"Sojasauce 150ml (KIKKOMAN)","price":1.79,"size":"150 ml","keeps":365,"keywords":["soy"],"note":"satay, broccoli, eggs; replaces salt.","short":"Soy sauce"},"vinegar":{"label":"Bio Apfelessig 500ml (MAZZETTI)","price":2.79,"size":"500 ml","keeps":730,"keywords":["vinegar"],"note":"acid for egg salad, broccoli, soup.","short":"Apple vinegar"},"tomatoPaste":{"label":"Tomatenmark 200g (KING'S CROWN)","price":0.89,"size":"200 g","keeps":365,"keywords":["tomatenmark","tomato paste"],"note":"shakshuka + pizza smear 2×/week, 10g each; freeze opened leftovers in 10g dollops","short":"Tomato paste"},"horseradish":{"label":"Meerrettich Tafel 190g (DELIKATO)","price":1.29,"size":"190 g","keeps":120,"keywords":["horseradish","meerrettich"],"note":"egg salad/burritos, 5g on 2–3 days/week.","short":"Horseradish"},"ginger":{"label":"Ingwer gemahlen Nachfüllbeutel (LE GUSTO)","price":0.99,"size":"30 g","keeps":730,"keywords":["ground ginger"],"note":"satay, sweet cinnamon dinners","short":"Ground ginger"},"oregano":{"label":"Oregano 12g (LE GUSTO)","price":0.75,"size":"12 g","keeps":730,"keywords":["oregano"],"note":"pizza wrap/toast, shakshuka","short":"Oregano"},"cocoa":{"label":"Kakao zum Backen 250g (BACK FAMILY)","price":3.29,"size":"250 g","keeps":730,"keywords":["cocoa"],"note":"cocoa-peanut cheesecake dinners, 4g 2×/week","short":"Baking cocoa"},"bay":{"label":"Lorbeerblätter Nachfüllbeutel 6g (LE GUSTO)","price":0.99,"size":"6 g","keeps":730,"keywords":["bay leaf"],"note":"chicken-carcass broth","short":"Bay leaf"},"coffee":{"label":"Löslicher Kaffee Gold 200g (BARISSIMO)","price":5.49,"size":"200 g","keeps":365,"keywords":[],"always":true,"note":"2 mugs/day, 112 cups per jar","short":"Coffee"},"sweetener":{"label":"Süßstofftabletten 1.200 Stück (SÜSSLI)","price":0.95,"size":"1200 tablets","keeps":730,"keywords":["sweetener"],"always":true,"note":"1 per coffee","short":"Sweetener tablet"},"caraway":{"label":"Kümmel gemahlen Nachfüllbeutel 35g (LE GUSTO)","price":0.99,"size":"","keeps":730,"keywords":["kümmel","caraway"],"note":"goulash-style soup","short":"Caraway (Kümmel)"},"thyme":{"label":"Thymian gerebelt 20g (LE GUSTO)","price":0.75,"size":"","keeps":730,"keywords":["thymian","thyme"],"note":"chicken soup, roasts","short":"Thyme"},"rosemary":{"label":"Rosmarin geschnitten Nachfüllbeutel 20g (LE GUSTO)","price":0.99,"size":"","keeps":730,"keywords":["rosmarin","rosemary"],"note":"tomato soup","short":"Rosemary"},"basil":{"label":"Basilikum 15g (LE GUSTO)","price":0.75,"size":"","keeps":730,"keywords":["basilikum","basil"],"note":"chicken soup, roasts","short":"Basil"},"marjoram":{"label":"Majoran gerebelt Nachfüllbeutel 20g (LE GUSTO)","price":0.99,"size":"","keeps":730,"keywords":["majoran","marjoram"],"note":"broccoli cream","short":"Marjoram"},"nutmeg":{"label":"Muskat ganz, 2 Stück (LE GUSTO)","price":0.99,"size":"","keeps":730,"keywords":["muskat","nutmeg"],"note":"broccoli cream, mash","short":"Nutmeg"},"chiltepin":{"label":"Chiltepín getrocknet (spice shop, not Aldi; ~€9,50 INFERENCE, pack size unconfirmed)","price":9.5,"size":"","keeps":730,"keywords":["chiltepin","chiltepín"],"note":"aguachile negro: the main chili, ~1 g (about 10 pods) per portion","short":"Chiltepín"},"ketchup":{"label":"Tomatenketchup 500g (Aldi, price INFERENCE)","price":0.99,"size":"500 g","keeps":90,"keywords":["ketchup"],"note":"oven fries, ~25 g a day (~27 kcal, not in totals)","short":"Ketchup"},"garlic":{"label":"Knoblauch 200g, frisch (Preis INFERENCE: Frischware nicht online gelistet)","price":0.69,"size":"200 g","keeps":42,"keywords":["garlic clove"],"note":"salsas, carnitas, discada, salsa macha","short":"Garlic"},"pulBiber":{"label":"Acı pul biber, Turkish chile flakes (not at Aldi; already in your kitchen)","price":0,"size":"","keeps":365,"keywords":["pul biber"],"note":"al pastor adobo, ~30 g a week. Turkish shops sell it; price not known, so it counts as €0 here","short":"Pul biber"}}};
+const TREATS = {"intro":"Optional, not part of any menu. Each treat **takes the place of the day's 2 eggs** (it carries its own eggs), so only the milk, mascarpone, starch and butter are extra. The card shows how much bread to leave out for the menu selected in the Today tab, so the day stays at or under the calorie ceiling, and names the meal whose toast to cut.","treats":[{"id":"flan","name":"Sugar-free flan","short":"Flan","eggs":110,"items":[["eggs",110],["milk",140]],"recipe":"**Sugar-free flan, 1 portion** — Dissolve 2 sweetener tablets in 140 ml milk (vanilla milk if you keep a pod in the carton) and taste it before the eggs go in: slightly too sweet is right, because cold custard tastes less sweet. Whisk in 2 eggs (110 g) **gently**, foam makes a pocked top, pour through a sieve into a wide, shallow heat-proof bowl of ~300 ml (Ø ~10 cm, so the custard is ≤3,5 cm deep, the manual's limit for steamed food) and cover it tightly with foil. Put the steam insert in the pot and the bowl on it. Steam it either on a rice cycle (bowl on the insert while the rice cooks, ≤1 cup of rice, 26 min) or on its own in STEAM mode with 1–2 cups of water in the pot for 25 min (set with the +10MIN button). It is done when the edge has set and the middle wobbles like jelly; if it sloshes, STEAM 5 more min. Let it cool, then chill at least 4 h, so make it the evening before. Eat it with the coffee glaze: ½ tsp instant coffee, 1 tbsp hot water and 1 sweetener tablet stirred together.","notes":[{"title":"Numbers","text":"1 flan = 2 eggs + 140 ml milk: ~19 g protein, ~230 kcal, about €0,58, no added sugar (the milk's own lactose, ~6,7 g, stays). Compared with the 2 eggs it replaces, the extra is 140 ml milk: +64 kcal, +4,8 g protein, +€0,12. The 2 tablets are 2 of the ~29 a day the plan's cyclamate limit allows at your weight."},{"title":"Why it is cooked this way","text":"A hard boil makes a rubbery, pocked flan: a rice-cooker leche-flan post on cookingmummy.com ended up like an omelette, and its readers' fixes were to strain, avoid foam, cover tightly with foil, and cook low and slow. The Reishunger's STEAM mode lets you set the time, which is why it is used instead of the plain cook cycle. `[INFERENCE: the 25 min come from steamed-custard recipes and Reishunger's own steaming table, not from testing on your cooker.]` Before first use, test once, empty, that the bowl fits on the insert and the lid closes; if it doesn't, use two small ramekins with 1 egg and 70 ml milk each. Don't cover with paper towels or an extra lid: the manual says they can block the steam valve."},{"title":"No caramel, and vanilla","text":"Tablet sweeteners have no sugar to caramelise, and erythritol (not used in this plan) recrystallises as it cools; allulose, which does work, is not in Aldi's range. The coffee glaze gives the bitter note instead. For vanilla, split 1 vanilla pod (BACK FAMILY Bourbon-Vanilleschoten, 2 for €1,99) when you open a 1 l milk carton, scrape the seeds in and leave the pod in the carton: by the next day it is vanilla milk for the week's flans `[INFERENCE]`. Skip the Dr. Oetker vanilla extract and paste at Aldi: they are sugared."},{"title":"Storage and carry","text":"Covered in the fridge for up to 3 days `[INFERENCE]`. Carry it in its lidded bowl in the cool bag and eat it within ~4 h. One milk carton (1 l, shelf life ~7 days) covers 7 flans."}]},{"id":"cheesecake","name":"Cheesecake (rice cooker)","short":"Cheesecake","eggs":110,"items":[["eggs",27.5],["mascarpone",50],["milk",50],["starch",7.5],["butter",2.5]],"recipe":"**Cheesecake in the Reishunger, 1 bake = 2 portions, no whisk needed** — Take 100 g Mascarpone out of the fridge 30 min ahead and grease the pot lightly with 5 g butter (the manual says to). Dissolve 6 sweetener tablets in 100 ml warm milk (vanilla milk if you keep a pod in the carton) and let it cool a little. Put 15 g Speisestärke in a bowl and stir in the milk a little at a time with a fork until there are no lumps. Stir in the mascarpone in 3 scoops, then 1 egg (55 g) and a pinch of salt, until smooth: with a fork or a hand whisk, and gently, because hard whisking can split mascarpone. Pour into the pot, tap it on the counter to release bubbles, close the lid and start BAKING (default 50 min; check from 30 min, because the cake is shallow: the edge is set, the middle wobbles only a little and a wooden toothpick comes out clean; if not, press WARM / STOP and start BAKING again). Rest 10 min in the cooker, loosen the edge with a plastic or wooden spatula (ceramic coating) and turn it out onto a plate. Chill at least 2 h, then cut in 2: 1 half = 1 portion, which replaces the 2 eggs.","notes":[{"title":"Numbers","text":"1 portion (half a bake) = ½ egg + 50 g mascarpone + 50 ml milk + 7,5 g starch + 2,5 g butter: ~7 g protein, ~300 kcal, about €0,57, plus 3 sweetener tablets (6 a bake). Compared with the 2 eggs it replaces that is about +135 kcal and −7 g protein, so most days need 1–1½ slices left out and end up 10+ g under the protein target. Mascarpone is 40 g fat, 27,6 g of it saturated, per 100 g (Aldi panel): one portion carries ~14 g, about half of the ~26 g a day that a ≤10 %-of-energy limit allows `[INFERENCE]`. It is a rich dessert, not a protein snack."},{"title":"Why mascarpone","text":"You find quark and Greek yoghurt too acidic, and skyr, kefir, Schmand and saure Sahne are sour as well. Aldi's online range has no plain Frischkäse or ricotta (only herb ones), so mascarpone (CUCINA, 250 g, €1,89) is the mild cheese left; it is made from cream and is much less tangy than cream cheese `[INFERENCE]`. There is no lemon in the recipe for the same reason: Reishunger's version has 1 tsp lemon juice, which is left out here."},{"title":"Where the recipe comes from","text":"Reishunger's own cheesecake for its bigger Digitaler Reiskocher (reishunger.de recipe 3623) is 200 g Frischkäse, 200 g Naturjoghurt, 80 g sugar, 2 eggs, 30 g Speisestärke, vanilla, lemon and salt, mixed with a Schneebesen, BACKEN ~45 min, rest 10 min, turn out. This is exactly half of it, with mascarpone and milk for the cheese and yoghurt and tablets for the sugar, so it stays under the Mini's 300 g limit for the BAKING function (275 g: 100 + 100 + 55 + 15 + 5 butter). `[INFERENCE: the time for 275 g in the Mini is not published, a shallow cake bakes faster than the bigger one, and mascarpone is fattier than the original, so expect a denser, richer cake.]`"},{"title":"Storage","text":"Covered in the fridge for up to 3 days. It sets properly only when cold, so make it the evening before. If the middle is still liquid after the 50 min, give it 10 more min with BAKING rather than turning it out."}]}],"mode":{"C":["swap","the 2 fried eggs on the Gouda-mustard melts; eat the melts plain"],"D":["extra","the 2 Arme-Ritter eggs, which stay (they are the batter)"],"E":["swap","the 2 hard-boiled lunch eggs"],"G":["swap","the 2 Chili-Lime snack eggs"],"K":["swap","2 of the 4 sunny-side eggs"],"L":["swap","the 2 hard-boiled lunch eggs"],"M":["swap","the 2 boiled eggs beside the burger; the fried egg stays"],"P":["swap","the 2 hard-boiled lunch eggs"],"Q":["extra","this menu, which has no eggs to give up"],"S":["extra","this menu, which has no eggs to give up","dinner, then breakfast"],"T":["extra","this menu, which has no eggs to give up","breakfast (only 2 slices, so a treat puts this day over the calorie ceiling)"],"U":["extra","this menu, which has no eggs to give up"],"V":["extra","this menu, which has no eggs to give up"],"W":["extra","this menu, which has no eggs to give up"],"X":["extra","this menu, which has no eggs to give up"],"Y":["extra","this menu, which has no eggs to give up"]}};
+// Day-type solver. Pure functions, no I/O, no dependencies.
+// Runs identically in Bun (generator) and in the browser (index.html).
+//
+// Contract: every solved day hits `proteinTarget` (+/- rounding on the knob food),
+// lands inside [kcalMin, kcalMax], and clears `fiberMin`. Bread, oil and veg are
+// searched; the knob food is solved analytically for the protein target.
+
+function macros(items, foods) {
+  let kcal = 0, protein = 0, fiber = 0, cost = 0;
+  for (const [key, g] of items) {
+    const f = foods[key];
+    if (!f) throw new Error(`unknown food: ${key}`);
+    kcal += f.kcal * g / 100;
+    protein += f.protein * g / 100;
+    fiber += f.fiber * g / 100;
+    cost += f.eurPerKg * g / 1000;
+  }
+  return { kcal: Math.round(kcal), protein: round1(protein), fiber: round1(fiber), cost: round2(cost) };
+}
+
+const round1 = x => Math.round(x * 10) / 10;
+const round2 = x => Math.round(x * 100) / 100;
+const round5 = x => Math.round(x / 5) * 5;
+const round10 = x => Math.round(x / 10) * 10;
+
+// Solve `knob` grams so the day hits the protein target.
+function withKnob(items, knob, foods, target) {
+  const others = items.filter(([k]) => k !== knob);
+  const have = macros(others, foods).protein;
+  const grams = Math.round((target - have) / foods[knob].protein * 100);
+  return [...others, [knob, grams]];
+}
+
+/** Base items every day type shares (dairy, oats, peanut butter, eggs, fruit); `fixed` may override any, 0 drops it. */
+function staples(dt, cons) {
+  const s = cons.staples;
+  const base = { eggs: s.eggsDefault, emmer: s.emmer, pb: s.pb, apple: s.apple };
+  return [
+    [dt.dairy, dt.dairyPerDay ?? s.dairyPerDay],
+    ...Object.entries({ ...base, ...dt.fixed }).filter(([, g]) => g > 0),
+  ];
+}
+
+/**
+ * Solve one day type. Returns { id, name, items, macros, oil, veg, bread, dt } or null.
+ * Preference among valid solutions: most bread, then most oil, then cheapest.
+ */
+function solveDay(dt, foods, cons) {
+  const fixed = staples(dt, cons);
+  // 35 g = half a 70 g roll: the finest granularity you can actually serve.
+  const breadStep = cons.breadStep ?? 35;
+  const breadMax = dt.breadMax ?? 490;
+  const breadMin = dt.breadMin ?? 105;
+
+  if (dt.lock) {
+    // Fully specified day: no knob search (day B's tuna comes in whole 125 g tins).
+    const items = [...fixed, [dt.bread, dt.lock.bread], ["oil", dt.lock.oil], ["veg", dt.lock.veg]];
+    const solved = dt.lock.solveKnob === false ? items : withKnob(items, dt.knob, foods, cons.proteinTarget);
+    return { id: dt.id, name: dt.name, items: solved, macros: macros(solved, foods), oil: dt.lock.oil, veg: dt.lock.veg, bread: dt.lock.bread, dt };
+  }
+
+  const oilMin = dt.oilMin ?? 10;
+  const candidates = [];
+  for (let oil = oilMin; oil <= 30; oil += 5) {
+    for (let veg = cons.vegBase; veg <= cons.vegMax; veg += 50) {
+      for (let bread = breadMax; bread >= breadMin; bread -= breadStep) {
+        const items = withKnob([...fixed, [dt.bread, bread], ["oil", oil], ["veg", veg]], dt.knob, foods, cons.proteinTarget);
+        const grams = items.find(([k]) => k === dt.knob)[1];
+        if (grams <= 0) continue;
+        const m = macros(items, foods);
+        if (m.kcal > cons.kcalMax || m.kcal < cons.kcalMin || m.fiber < cons.fiberMin) continue;
+        candidates.push({ id: dt.id, name: dt.name, items, macros: m, oil, veg, bread, dt });
+      }
+    }
+  }
+  candidates.sort((a, b) => b.bread - a.bread || b.oil - a.oil || a.macros.cost - b.macros.cost);
+  return candidates[0] ?? null;
+}
+
+/** Split a solved day into breakfast / snack 1 / lunch / snack 2 / dinner. */
+function splitMeals(day, foods, cons) {
+  const g = Object.fromEntries(day.items);
+  const dt = day.dt;
+  const breadKeys = day.items.map(([k]) => k).filter(k => foods[k]?.bread);
+  const primary = dt.bread;
+  const meals = { Breakfast: [], "Snack 1": [], Lunch: [], "Snack 2": [], Dinner: [] };
+
+  // No meat/fish main: lunch protein is bread (wheat), so pair it with complete protein in the
+  // same meal — a third of the dairy and every egg go to lunch.
+  const meatless = dt.meatless ?? !day.items.some(([k]) => foods[k]?.main);
+  const dairy = g[dt.dairy], dairyLunch = meatless ? round10(dairy / 3) : 0;
+  // `mealOf.dairy` moves the whole dairy portion to that meal (V: quark only at dinner).
+  const dairyBreakfast = dt.mealOf?.dairy ? 0 : (dairy - dairyLunch) / 2;
+  if (dairyBreakfast) meals.Breakfast.push([dt.dairy, dairyBreakfast]);
+  if (g.emmer) meals.Breakfast.push(["emmer", g.emmer]);
+  meals.Breakfast.push(["apple", cons.staples.apple / 2]);
+
+  // Meatless days put eggs with the lunch bread; past 4 eggs, 2 move to the snack.
+  // `mealOf.eggs` puts every egg in one meal (V: eggs and bacon for breakfast).
+  const eggsPinned = dt.mealOf?.eggs;
+  if (eggsPinned && g.eggs) meals[eggsPinned].push(["eggs", g.eggs]);
+  const eggsSnack = eggsPinned ? 0 : meatless ? ((g.eggs ?? 0) > 220 ? 110 : 0) : Math.min(g.eggs ?? 0, 110);
+  if (eggsSnack) meals["Snack 1"].push(["eggs", eggsSnack]);
+  const eggsRest = eggsPinned ? 0 : (g.eggs ?? 0) - eggsSnack;
+  if (meatless) {
+    meals.Lunch.push([dt.dairy, dairyLunch]);
+    if (eggsRest) meals.Lunch.push(["eggs", eggsRest]);
+  }
+
+  for (const [k, grams] of day.items) {
+    if (foods[k]?.main) meals[dt.mealOf?.[k] ?? foods[k]?.meal ?? "Lunch"].push([k, grams]);
+    // Fixed sides (broccoli, seeds, cheese) carry their own meal; a day type may move one (`mealOf`).
+    else if (foods[k]?.meal) meals[dt.mealOf?.[k] ?? foods[k].meal].push([k, grams]);
+  }
+  for (const k of breadKeys) {
+    if (k !== primary) { meals.Lunch.push([k, g[k]]); continue; }
+    // A day type may place its bread explicitly (e.g. rice at lunch, so toast goes to breakfast/dinner).
+    if (dt.breadMeals) {
+      for (const [meal, grams] of Object.entries(dt.breadMeals)) meals[meal].push([k, grams]);
+      continue;
+    }
+    const unit = foods[k].unit?.grams ?? 70;
+    const lunch = Math.round(g[k] * 0.55 / unit) * unit;
+    meals.Lunch.push([k, lunch]);
+    meals.Dinner.push([k, g[k] - lunch]);
+  }
+  // Oil: ⅔ lunch / ⅓ dinner, unless the day type pins it to one meal (`mealOf.oil`).
+  const oilLunch = dt.mealOf?.oil ? (dt.mealOf.oil === "Lunch" ? g.oil : 0) : round5(g.oil * 2 / 3), oilDinner = g.oil - oilLunch;
+  if (oilLunch) meals.Lunch.push(["oil", oilLunch]);
+  const vegLunch = round10(g.veg * cons.vegLunchShare);
+  if (vegLunch) meals.Lunch.push(["veg", vegLunch]);
+
+  const snack2Meal = dt.mealOf?.appleSnack ?? dt.mealOf?.mandarinSnack ?? "Snack 2";
+  meals[snack2Meal].push(["apple", cons.staples.apple / 2]);
+
+  meals.Dinner.unshift([dt.dairy, dairy - dairyLunch - dairyBreakfast]);
+  meals.Dinner.push(["pb", g.pb]);
+  if (eggsRest && !meatless) meals.Dinner.push(["eggs", eggsRest]);
+  if (oilDinner) meals.Dinner.push(["oil", oilDinner]);
+  if (g.veg - vegLunch) meals.Dinner.push(["veg", g.veg - vegLunch]);
+
+  return Object.entries(meals).map(([meal, items]) => ({ meal, items, macros: macros(items, foods) }));
+}
+
+/** Veg mix €/kg from the same pack prices the shopping list charges, so €/day and the till agree. */
+function vegEurPerKg(cons) {
+  return Object.entries(cons.vegMix)
+    .reduce((s, [k, g]) => s + g * cons.vegPacks[k].price / cons.vegPacks[k].edible, 0) / cons.vegBase * 1000;
+}
+
+/** Purchasable unit behind a use key: a food pack, a veg pack ("veg:onion") or a pantry item ("pantry:coffee"). */
+function packOf(key, foods, cons) {
+  if (key.startsWith("veg:")) return cons.vegPacks[key.slice(4)];
+  if (key.startsWith("pantry:")) return cons.pantry[key.slice(7)];
+  return foods[key].pack;
+}
+
+
+/** The one recipe text of a meal, or null when the day type gives none (e.g. a bare snack). */
+function recipeOf(dt, meal) {
+  return dt.meals?.[meal] ?? null;
+}
+
+/** One-time buys for a day type: `always` items (coffee, sweetener) plus seasonings its meals/notes text names. */
+function spicesFor(dt, cons) {
+  const text = JSON.stringify([dt.meals ?? {}, dt.notes ?? []]).toLowerCase();
+  return Object.entries(cons.spices ?? {}).filter(([, s]) => s.always || s.keywords.some(k => text.includes(k)));
+}
+
+/** Daily use, in pack units (g / ml / tablets), of everything a solved day consumes. */
+function dailyUse(day, foods, cons) {
+  const use = {};
+  for (const [k, g] of day.items) {
+    if (k === "veg") continue;
+    if (!foods[k].pack) throw new Error(`${k} is eaten on day ${day.id} but has no pack: it would be missing from the shopping list`);
+    use[k] = (use[k] ?? 0) + g;
+  }
+  for (const [k, g] of vegBreakdown(day.veg, cons)) use["veg:" + k] = g;
+  for (const [k, p] of Object.entries(cons.pantry)) use["pantry:" + k] = p.perDay;
+  return use;
+}
+
+/** Days of use looked at past the horizon; shelf lives this long count as long-life. */
+const LOOKAHEAD = 60;
+
+/**
+ * What `days` days of one solved day eat, per purchasable product: [{ key, pack, perDay, need }],
+ * `perDay` and `need` in the pack's own unit (g or ml of edible food). Aisle order, dearest need first.
+ * This is consumption only: how many packs to buy is the shopper's call after a pantry check.
+ */
+function needsFor(day, foods, cons, days = 7) {
+  const order = cons.aisles.map(([a]) => a);
+  const cost = x => x.need / x.pack.edible * x.pack.price;
+  return Object.entries(dailyUse(day, foods, cons))
+    .filter(([, perDay]) => perDay > 0)
+    .map(([key, perDay]) => ({ key, pack: packOf(key, foods, cons), perDay, need: perDay * days }))
+    .sort((a, b) => order.indexOf(a.pack.aisle) - order.indexOf(b.pack.aisle) || cost(b) - cost(a));
+}
+
+/**
+ * Grams of `n` freshly bought packs still uneaten when the shelf life (`keeps` days) runs out, eating
+ * `perDay` from day 1: freeze them on arrival, or buy them on a later top-up. 0 for long-life packs,
+ * and for less than one day's use (the last mandarin is noise, not advice).
+ */
+function pastKeeps(pack, perDay, n) {
+  if (pack.keeps >= LOOKAHEAD) return 0;
+  const late = n * pack.edible - perDay * pack.keeps;
+  return late >= perDay ? round10(late) : 0;
+}
+
+/**
+ * Trip-by-trip shopping for a rotation of solved days (repeated to fill `horizon`).
+ * Packs are bought just in time: a trip buys enough packs to cover cumulative use
+ * through its last day, minus packs already bought. Leftovers carry forward, so
+ * long-life packs (oil, coffee, peanut butter) only appear on the trip where they
+ * run out, and the first trip is the pantry stock-up by construction.
+ * `freezeG`: grams bought this trip (or carried into it) still uneaten when the
+ * item's shelf life (`keeps` days) runs out — freeze them on arrival, or top up.
+ * `freezerG` per trip: frozen-aisle packs plus everything to freeze, i.e. the
+ * freezer space the trip needs on day 1.
+ */
+function shopPlan(rotation, foods, cons, every = 7, horizon = 28) {
+  const uses = rotation.map(d => dailyUse(d, foods, cons));
+  const keys = [...new Set(uses.flatMap(Object.keys))];
+  const cum = {};
+  for (const k of keys) {
+    cum[k] = [0];
+    // Extends past the horizon so shelf-life checks see the use after the last trip.
+    for (let t = 0; t < horizon + LOOKAHEAD; t++) cum[k].push(cum[k][t] + (uses[t % uses.length][k] ?? 0));
+  }
+  const bought = (k, t) => Math.ceil(cum[k][Math.min(t, horizon)] / packOf(k, foods, cons).edible - 1e-9);
+  const order = cons.aisles.map(([a]) => a);
+  const trips = [];
+  for (let s = 0; s < horizon; s += every) {
+    const e = Math.min(s + every, horizon);
+    const lines = [];
+    for (const k of keys) {
+      const p = packOf(k, foods, cons);
+      const n = bought(k, e) - bought(k, s);
+      if (n <= 0) continue;
+      const stockEnd = bought(k, e) * p.edible;
+      // Shelf lives past the look-ahead are long-life packs: never at risk.
+      const atRisk = p.keeps < LOOKAHEAD
+        ? stockEnd - Math.max(cum[k][s + p.keeps], bought(k, s) * p.edible)
+        : 0;
+      const perDay = cum[k][horizon] / horizon;
+      lines.push({
+        key: k, label: p.label, aisle: p.aisle, n, unit: p.price, line: round2(n * p.price),
+        use: Math.round(cum[k][e] - cum[k][s]),
+        carry: Math.round(stockEnd - cum[k][e]),
+        // Less than one day's use past its shelf life is noise (the last mandarin), not advice.
+        freezeG: atRisk >= perDay ? round10(atRisk) : 0,
+        freeze: p.freeze, keeps: p.keeps,
+      });
+    }
+    lines.sort((a, b) => order.indexOf(a.aisle) - order.indexOf(b.aisle) || b.line - a.line);
+    const freezerG = lines.reduce((x, l) => x + (l.aisle === "frozen" ? l.n * packOf(l.key, foods, cons).edible : l.freeze ? l.freezeG : 0), 0);
+    trips.push({ start: s, days: e - s, lines, freezerG, total: round2(lines.reduce((x, l) => x + l.line, 0)) });
+  }
+  const pantryDay = Object.values(cons.pantry).reduce((x, p) => x + p.perDay / p.edible * p.price, 0);
+  const foodDay = rotation.reduce((x, d) => x + d.macros.cost, 0) / rotation.length;
+  return {
+    trips,
+    till: round2(trips.reduce((x, t) => x + t.total, 0)),
+    burnWeek: round2((foodDay + pantryDay) * 7),
+  };
+}
+
+function vegBreakdown(veg, cons) {
+  const scale = veg / cons.vegBase;
+  return Object.entries(cons.vegMix).map(([k, v]) => [k, Math.round(v * scale)]);
+}
+
+/** Units label, e.g. "3 rolls" for 210g of Sonntagsbrötchen. */
+function unitLabel(key, grams, foods) {
+  const u = foods[key]?.unit;
+  if (!u) return "";
+  const n = grams / u.grams;
+  const shown = Number.isInteger(n) ? n : round1(n);
+  return `${shown} ${u.name}${n === 1 ? "" : "s"}`;
+}
+
+function solveAll(daytypes, foods, cons) {
+  return daytypes.map(dt => {
+    const day = solveDay(dt, foods, cons);
+    if (!day) throw new Error(`no solution for day type ${dt.id} ${dt.name}`);
+    return day;
+  });
+}
+
+/**
+ * A solved day with an optional treat (flan, cheesecake) eaten that day. `mode` "swap": the treat carries its own
+ * eggs, so `treat.eggs` g of the day's eggs are dropped; "extra": nothing is dropped. The day's main bread is cut in
+ * half-unit steps (half a slice) until kcal is back under `kcalMax`. Returns { cut, slices, macros, before, ok }.
+ */
+function withTreat(day, treat, mode, foods, cons) {
+  const g = new Map(day.items);
+  const add = (k, v) => g.set(k, (g.get(k) ?? 0) + v);
+  if (mode === "swap") add("eggs", -Math.min(g.get("eggs") ?? 0, treat.eggs));
+  for (const [k, v] of treat.items) add(k, v);
+  const bread = day.dt.bread, unit = foods[bread].unit?.grams ?? 70, step = unit / 2;
+  const list = () => [...g].filter(([, v]) => v > 1e-9);
+  let cut = 0;
+  while (macros(list(), foods).kcal > cons.kcalMax && (g.get(bread) ?? 0) >= step) { add(bread, -step); cut += step; }
+  const m = macros(list(), foods);
+  return { cut, slices: cut / unit, unit, macros: m, before: day.macros, ok: m.kcal <= cons.kcalMax && m.kcal >= cons.kcalMin && m.fiber >= cons.fiberMin };
+}
+
+/** "1½ slices", "½ wrap" or "none" for a bread cut in half-unit steps. */
+function cutLabel(units, name) {
+  if (!units) return "none";
+  const whole = Math.floor(units + 1e-9), half = units - whole > 0.25;
+  return `${whole || ""}${half ? "½" : ""} ${name}${units > 1 ? "s" : ""}`;
+}
+
+/**
+ * Position of a solved day inside its constraints, as 0..1 fractions for CSS.
+ * `ok` false means the day breaks a constraint — the UI paints it amber.
+ */
+function gauges(day, cons) {
+  const m = day.macros;
+  const span = cons.kcalMax - cons.kcalMin;
+  const clamp = x => Math.max(0, Math.min(1, x));
+  return {
+    protein: { pct: clamp(m.protein / (cons.proteinTarget * 1.15)), ok: m.protein >= cons.proteinTarget - 1 },
+    kcal: { pct: clamp((m.kcal - cons.kcalMin) / span), ok: m.kcal >= cons.kcalMin && m.kcal <= cons.kcalMax },
+    fiber: { pct: clamp(m.fiber / (cons.fiberMin * 1.7)), floor: 1 / 1.7, ok: m.fiber >= cons.fiberMin },
+  };
+}
+
+// UI for the food plan. Solves in the browser from the inlined data, so the
+// single HTML file is the whole system: no server, no network, works offline.
+
+const DAYS = solveAll(DAYTYPES, FOODS, CONS);
+const BASE = DAYS.find(d => d.dt.baseline);
+/**
+ * App state. Memory is the source of truth, so the app works even where the browser gives the page no storage
+ * at all: an HTML file opened from a phone's file manager can get an opaque origin, where localStorage throws.
+ * Every change is mirrored to localStorage when it accepts writes and, unless the page is served over http(s),
+ * to the URL fragment, which survives a reload and a tab the phone threw out of memory.
+ * `saved` is false when the tab's address is the only copy.
+ */
+const store = (() => {
+  const PRE = "fp:";
+  const enc = o => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o))));
+  const dec = s => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0))));
+  const write = (k, v) => { try { localStorage.setItem(PRE + k, JSON.stringify(v)); } catch {} };
+  let mem = {}, saved = false;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k.startsWith(PRE)) try { mem[k.slice(PRE.length)] = JSON.parse(localStorage.getItem(k)); } catch {}
+    }
+    localStorage.setItem(PRE + "probe", "1");
+    localStorage.removeItem(PRE + "probe");
+    saved = true;
+  } catch {}
+  const inUrl = !saved || !/^https?:$/.test(location.protocol);
+  // Nothing stored: take the state the address carries (a reloaded or restored tab of a local file).
+  if (inUrl && !Object.keys(mem).length) {
+    try {
+      const o = dec(location.hash.slice(1));
+      if (o && typeof o === "object" && !Array.isArray(o)) mem = o;
+    } catch {}
+    if (saved) for (const [k, v] of Object.entries(mem)) write(k, v);
+  }
+  return {
+    saved,
+    get: (k, fb) => mem[k] ?? fb,
+    set(k, v) {
+      mem[k] = v;
+      if (saved) write(k, v);
+      if (inUrl) try { history.replaceState(null, "", "#" + enc(mem)); } catch {}
+    },
+  };
+})();
+
+const el = (tag, attrs = {}, kids = []) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v;
+    else if (k === "html") n.innerHTML = v;
+    else if (k === "style") n.style.cssText = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  }
+  for (const kid of [].concat(kids)) if (kid) n.append(kid);
+  return n;
+};
+const icon = id => {
+  const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  const u = document.createElementNS("http://www.w3.org/2000/svg", "use");
+  u.setAttribute("href", "#i-" + id);
+  s.append(u);
+  return s;
+};
+const de = n => n.toFixed(1).replace(".", ",");
+const eur = n => "€" + n.toFixed(2);
+const qty = (k, g) => `${g}${FOODS[k].liquid ? "ml" : "g"}`;
+const monthDelta = d => (d.macros.cost - BASE.macros.cost) * 30.44;
+const signed = v => (v >= 0 ? "+" : "−") + "€" + Math.abs(v).toFixed(2);
+const inline = s => s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+const MEAL_ICON = { "Breakfast": "sun", "Snack 1": "apple", "Lunch": "pan", "Snack 2": "apple", "Dinner": "moon" };
+
+const current = () => DAYS.find(d => d.id === store.get("day", BASE.id)) ?? BASE;
+
+function picker(onchange) {
+  const sel = el("select", { onchange: e => { store.set("day", e.target.value); onchange(); } });
+  const cur = current().id;
+  for (const d of DAYS) {
+    const o = el("option", { value: d.id }, `${d.id} — ${d.name} · ${eur(d.macros.cost)}/day`);
+    if (d.id === cur) o.selected = true;
+    sel.append(o);
+  }
+  return sel;
+}
+
+function gauge(label, value, g, extra) {
+  const track = el("div", { class: "track", style: `--pct:${g.pct}` + (g.floor ? `;--floor:${g.floor}` : "") },
+    [el("i"), g.floor ? el("u") : null]);
+  return el("div", { class: "stat" + (g.ok ? "" : " warn") },
+    [el("b", {}, value), el("span", {}, label), track, extra]);
+}
+
+function stats(d) {
+  const g = gauges(d, CONS);
+  const wide = el("div", { class: "stat wide" }, [
+    el("b", {}, `${eur(d.macros.cost)}/day · ${eur(d.macros.cost * 7)}/week`),
+    el("span", {}, d.dt.baseline ? "baseline" : `${signed(monthDelta(d))}/month vs baseline`),
+  ]);
+  return el("div", { class: "stats" }, [
+    gauge("protein", de(d.macros.protein) + "g", g.protein),
+    gauge("kcal", String(d.macros.kcal), g.kcal),
+    gauge("fiber", de(d.macros.fiber) + "g", g.fiber),
+    wide,
+  ]);
+}
+
+/** Emoji per food key: offline, no image assets. */
+const FOOD_ICON = {
+  quark: "🥣", skyr: "🥣", eggs: "🥚", emmer: "🌾", apple: "🍎", mandarin: "🍊", sunflower: "🌻", pb: "🥜", oil: "🫒",
+  broccoli: "🥦", gouda: "🧀", passata: "🍅", veg: "🥕", lentils: "🫘", rice: "🍚", bacon: "🥓",
+  vollkornSandwich: "🍞", vollkorntoast: "🍞", dinkelSandwich: "🍞", knaecke: "🍘", flax: "🌰", sandwichtoast: "🍞", proteinbrot: "🍞", rolls: "🥖",
+  proteinWrap: "🌯", weizenWraps: "🌯", proteinChips: "🥔", potato: "🥔", butter: "🧈", beef: "🥩", onion: "🧅", hamburgerBun: "🍔",
+  shrimp: "🦐", tortillaChips: "🌮", cucumber: "🥒", redOnion: "🧅", jalapeno: "🌶️", lime: "🍋", cilantro: "🌿",
+  brathaehnchen: "🍗", chicken: "🍗", porkXXL: "🥩", porkMinute: "🥩", tuna: "🐟", seelachs: "🐟", bratwurst: "🌭", porkBelly: "🥓",
+  coconutMilk: "🥥", milk: "🥛", jasmine: "🍚", starch: "🌽", mascarpone: "🧀", mango: "🥭", laugenbrezen: "🥨",
+  porkGulasch: "🥩", kidney: "🫘", mozzarella: "🧀", hirtenkaese: "🧀", saureSahne: "🥛", spitzpaprika: "🫑", tomato: "🍅",
+  pangasius: "🐟", hotDogBun: "🌭", chipotleMayo: "🌶️", paniermehl: "🍞", pineapple: "🍍", redCabbage: "🥬",
+  hackSchwein: "🥩", dumplingWrap: "🥟", chinakohl: "🥬", freshGinger: "🫚", springOnion: "🧅",
+};
+
+/** Pantry items (no grams in the plan) a single recipe calls for. */
+const KITCHEN = [["lemon", "Lemon juice"], ["broth", "Chicken broth (homemade)"], ["water", "Water"]];
+// Amount written directly before an ingredient word: "1 tbsp soy", "½ tsp LE GUSTO Kümmel", "a pinch of salt".
+// Only a few filler words may sit between amount and ingredient, so a neighbour's amount never leaks in.
+const AMOUNT = /(?:(\d+(?:[.,]\d+)?\s*[½¼¾]?|[½¼¾]|a|one|two)\s*(tsp|tbsp|ml|g)|(a (?:good |big )?(?:pinch|squeeze|splash|dab|few drops)))(?:\s+(?:of|each|ground|crushed|dried|plain|medium|black|apple|baking|le gusto|kikkoman))*\s+$/i;
+// Countable items (tablets, leaves): a bare number right before the word is the count.
+const COUNT = /(\d+|½|a|one|two)(?:\s+crushed)?\s+$/i;
+const word = n => n.trim().replace(/^(a|one)$/i, "1").replace(/^two$/i, "2");
+function amountsOf(text, keywords, countable) {
+  const lo = text.toLowerCase(), found = [];
+  for (const k of keywords) {
+    for (let i = lo.indexOf(k); i >= 0; i = lo.indexOf(k, i + k.length)) {
+      const before = text.slice(Math.max(0, i - 40), i);
+      const m = before.match(AMOUNT);
+      if (m) found.push(m[3] ? m[3].toLowerCase() : `${word(m[1])} ${m[2]}`);
+      else if (countable) { const c = before.match(COUNT); if (c) found.push(`${word(c[1])}×`); }
+    }
+  }
+  return [...new Set(found)];
+}
+function extrasFor(text) {
+  const lo = text.toLowerCase();
+  const items = [...Object.values(CONS.spices).map(s => [s.short, s.keywords]), ...KITCHEN.map(([k, l]) => [l, [k]])];
+  return items.filter(([, ks]) => ks.some(k => lo.includes(k))).map(([name, ks]) => {
+    const a = amountsOf(text, ks, /tablet|leaf/i.test(name));
+    return a.length ? `${name} — ${a.join(" + ")}` : name;
+  });
+}
+
+/** Recipe block inside a meal card: the recipe text and the extras it calls for. */
+function howTo(text) {
+  const extras = extrasFor(text);
+  return el("div", { class: "how" }, [
+    el("p", { html: inline(text) }),
+    extras.length ? el("details", { class: "extras" }, [
+      el("summary", {}, `Extras to have ready (${extras.length})`),
+      el("ul", {}, extras.map(x => el("li", {}, x))),
+    ]) : null,
+  ]);
+}
+
+function viewToday(render) {
+  const d = current();
+  const out = [picker(render), stats(d)];
+  for (const m of splitMeals(d, FOODS, CONS)) {
+    if (!m.items.length) continue;
+    const card = el("div", { class: "meal" }, [
+      el("h3", {}, [icon(MEAL_ICON[m.meal]), el("span", {}, m.meal), el("em", {}, `${de(m.macros.protein)}g · ${m.macros.kcal} kcal`)]),
+    ]);
+    for (const [k, g] of m.items) {
+      const u = unitLabel(k, g, FOODS);
+      card.append(el("div", { class: "row" }, [
+        el("i", { class: "ico", "aria-hidden": "true" }, FOOD_ICON[k] ?? "🍽️"),
+        el("span", {}, [FOODS[k].label, u ? el("small", {}, u) : null]),
+        el("b", {}, qty(k, g)),
+      ]));
+    }
+    const text = recipeOf(d.dt, m.meal);
+    if (text) card.append(howTo(text));
+    out.push(card);
+  }
+  out.push(el("p", { class: "note", html: inline("**Coffee:** 2 mugs, 1 sweetener tablet each — bought as needed, see the Spices tab.") }));
+  for (const n of d.dt.notes ?? []) {
+    out.push(el("details", { class: "notecard" }, [el("summary", {}, n.title), el("p", { html: inline(n.text) })]));
+  }
+  return out;
+}
+
+const AISLE = Object.fromEntries(CONS.aisles);
+const AISLE_ORDER = CONS.aisles.map(([a]) => a);
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+/** 7 -> "7", 0.78 -> "0,8": a decimal only where it says something. */
+const num = x => { const r = Math.round(x * 10) / 10; return Number.isInteger(r) ? String(r) : de(r); };
+
+/** Grams, millilitres or the pantry item's own unit. */
+const measure = (key, n) => key.startsWith("pantry:")
+  ? `${Math.round(n)} ${CONS.pantry[key.slice(7)].unit}`
+  : `${Math.round(n)}${FOODS[key]?.liquid ? "ml" : "g"}`;
+
+/** Amount in the unit you count at home: whole eggs/slices/wraps where defined (rounded down), else g/ml. */
+function amount(key, n) {
+  const u = FOODS[key]?.unit;
+  return u ? unitLabel(key, Math.floor(n / u.grams + 1e-9) * u.grams, FOODS) : measure(key, n);
+}
+
+/** "770g · 14 eggs · 0,8 packs": one need in grams, in the pieces you count, and in packs. */
+function needLabel(key, need, pack) {
+  const p = need / pack.edible;
+  return [
+    measure(key, need),
+    unitLabel(key, need, FOODS),
+    p < 0.05 ? "<0,1 packs" : `${num(p)} pack${num(p) === "1" ? "" : "s"}`,
+  ].filter(Boolean).join(" · ");
+}
+
+/** What a list key buys: a food pack, a veg pack ("veg:onion"), a pantry item or a one-time seasoning ("spice:salt"). Null once the data drops it. */
+function product(key) {
+  if (key.startsWith("spice:")) {
+    const s = CONS.spices[key.slice(6)];
+    return s ? { label: s.label, price: s.price, aisle: "dry", once: true } : null;
+  }
+  if (key.startsWith("veg:")) return CONS.vegPacks[key.slice(4)] ?? null;
+  if (key.startsWith("pantry:")) return CONS.pantry[key.slice(7)] ?? null;
+  return FOODS[key]?.pack?.price ? FOODS[key].pack : null;
+}
+
+const VEG_ICON = { onion: "🧅", carrot: "🥕", leek: "🥬", tomatoes: "🥫", garlic: "🧄" };
+const iconOf = key => key.startsWith("spice:") ? "🧂" : key.startsWith("veg:") ? VEG_ICON[key.slice(4)] ?? "🥕" : FOOD_ICON[key] ?? "🍽️";
+
+/**
+ * The shopping list: packs to buy per product key, set by hand after a pantry check.
+ * One list for every menu and for the Spices tab; `got` holds the keys already in the trolley.
+ */
+const cart = {
+  all: () => store.get("cart", {}),
+  count: k => cart.all()[k] ?? 0,
+  set(k, n) {
+    const c = cart.all();
+    if (n > 0) c[k] = n; else delete c[k];
+    store.set("cart", c);
+    if (n <= 0) store.set("got", store.get("got", []).filter(x => x !== k));
+    paintBadge();
+  },
+  clear() { store.set("cart", {}); store.set("got", []); paintBadge(); },
+  /** Lines to buy in aisle order, dearest first. Keys the data no longer has are skipped, so no total counts a hidden line. */
+  lines: () => Object.entries(cart.all())
+    .map(([key, n]) => ({ key, n, pack: product(key) }))
+    .filter(x => x.pack && x.n > 0)
+    .sort((a, b) => AISLE_ORDER.indexOf(a.pack.aisle) - AISLE_ORDER.indexOf(b.pack.aisle) || b.n * b.pack.price - a.n * a.pack.price),
+  total: lines => lines.reduce((s, x) => s + x.n * x.pack.price, 0),
+};
+
+/** Products on the list, shown on the Shop tab so a tap in the Spices tab is visibly counted. */
+const badge = el("b", { class: "badge" });
+document.querySelector('nav button[data-view="shop"]').append(badge);
+function paintBadge() { badge.textContent = cart.lines().length || ""; }
+
+/** − n + control. `get`/`set` own the value; `changed` runs after a tap that moved it. */
+function stepper(get, set, changed, min = 0, max = 99) {
+  const out = el("output");
+  const box = el("div", { class: "step" });
+  const paint = () => { out.textContent = get(); box.classList.toggle("zero", !get()); };
+  const tap = d => () => {
+    const n = Math.max(min, Math.min(max, get() + d));
+    if (n === get()) return;
+    set(n);
+    paint();
+    changed?.(n);
+  };
+  box.append(
+    el("button", { type: "button", "aria-label": "one less", onclick: tap(-1) }, "−"),
+    out,
+    el("button", { type: "button", "aria-label": "one more", onclick: tap(1) }, "+"),
+  );
+  paint();
+  return box;
+}
+const cartStepper = (key, changed) => stepper(() => cart.count(key), n => cart.set(key, n), changed);
+
+/** Shelf-life advice for `n` packs of a product the current menu eats `perDay` of; "" when all of it gets eaten in time. */
+function keepsAdvice(key, pack, perDay, n) {
+  const late = perDay ? pastKeeps(pack, perDay, n) : 0;
+  if (!late) return "";
+  return pack.freeze
+    ? `Keeps ${pack.keeps} d: freeze ~${amount(key, late)} on arrival`
+    : `Keeps ${pack.keeps} d: ~${amount(key, late)} won't be eaten in time, buy that part on a later top-up`;
+}
+
+/** Foods any menu or treat eats: the products worth offering in "add another product". */
+const EATEN = new Set([...DAYS.flatMap(d => d.items), ...TREATS.treats.flatMap(t => t.items)].map(([k]) => k));
+
+function viewShop(render) {
+  const d = current();
+  const days = Math.min(14, Math.max(1, Math.round(Number(store.get("days", 7))) || 7));
+  const needs = needsFor(d, FOODS, CONS, days);
+  const mode = store.get("shopMode", "pantry") === "store" ? "store" : "pantry";
+  const seg = el("div", { class: "seg" }, [["pantry", "1 · Check pantry"], ["store", "2 · In store"]].map(([v, label]) =>
+    el("button", { class: v === mode ? "on" : "", onclick: () => { store.set("shopMode", v); render(); } }, label)));
+  // Say so when the list cannot outlive this tab, instead of losing it silently.
+  const unsaved = store.saved ? null : el("p", { class: "note alert", html: inline(`**This copy cannot save to the phone** (opened as ${location.protocol}). Your menu and list live in this tab's address: come back to this tab instead of opening the file again.`) });
+  return [unsaved, seg, ...(mode === "store" ? shopStore(render, needs) : shopPantry(render, d, days, needs))].filter(Boolean);
+}
+
+/** Step 1, at home: what the menu eats over `days` days, and a counter per product for the packs to buy. */
+function shopPantry(render, d, days, needs) {
+  const span = days === 7 ? "Week" : plural(days, "day");
+  const sum = el("b"), sub = el("small");
+  const go = el("button", { type: "button", onclick: () => { store.set("shopMode", "store"); render(); } }, "In store →");
+  const paintSum = () => {
+    const lines = cart.lines(), n = lines.reduce((s, x) => s + x.n, 0);
+    sum.textContent = eur(cart.total(lines));
+    sub.textContent = n ? `${plural(n, "pack")} · ${plural(lines.length, "product")}` : "Nothing yet: tap + on what you need";
+    go.disabled = !n;
+  };
+
+  /** One product: what it is, what the menu eats of it (`need`, absent for off-menu lines, which show `hint`), and its counter. */
+  const row = ({ key, pack, perDay, need }, hint) => {
+    const buy = el("small", { class: "buy" }), warn = el("small", { class: "warn" });
+    const node = el("div", { class: "item" });
+    const paint = n => {
+      warn.textContent = n ? keepsAdvice(key, pack, perDay, n) : "";
+      if (!n) { buy.textContent = ""; return; }
+      const over = need ? n * pack.edible - need : 0;
+      const spare = over >= (FOODS[key]?.unit?.grams ?? 1) ? `, ${amount(key, over)} spare` : "";
+      buy.textContent = eur(n * pack.price) + (!need ? ""
+        : over > -1e-6 ? ` · covers ${days === 7 ? "the week" : `all ${days} days`}${spare}`
+        : ` · covers ${num(n * pack.edible / perDay)} of ${days} days, the rest from your pantry`);
+    };
+    node.append(
+      el("i", { class: "ico", "aria-hidden": "true" }, iconOf(key)),
+      el("span", { class: "name" }, pack.label),
+      el("small", { class: "need" }, [...(need ? [`${span}: `, el("b", {}, needLabel(key, need, pack))] : [hint]), ` · ${eur(pack.price)}/pack`]),
+      cartStepper(key, n => { paint(n); paintSum(); }),
+      buy, warn,
+    );
+    paint(cart.count(key));
+    return node;
+  };
+
+  const list = el("div", { class: "meal" }, el("h3", {}, [
+    el("span", {}, `Menu ${d.id} · ${days === 7 ? "one week" : plural(days, "day")}`),
+    el("em", {}, `eats ${eur(d.macros.cost * days)}`),
+  ]));
+  let aisle = null;
+  for (const x of needs) {
+    if (x.pack.aisle !== aisle) { aisle = x.pack.aisle; list.append(el("div", { class: "aisle" }, AISLE[aisle])); }
+    list.append(row(x));
+  }
+
+  // On the list but not eaten by this menu: another menu's products, treats, seasonings.
+  const onMenu = new Set(needs.map(x => x.key));
+  const others = cart.lines().filter(x => !onMenu.has(x.key));
+  const extra = others.length ? el("div", { class: "meal" }, [
+    el("h3", {}, el("span", {}, "Also on your list")),
+    ...others.map(x => row(x, x.pack.once ? "One-time buy" : `Not eaten by menu ${d.id}`)),
+  ]) : null;
+
+  // Same product under two keys (yellow onions are a food and a veg-mix pack) is offered once.
+  const seen = new Set([...needs, ...others].map(x => x.pack.label));
+  const fresh = keys => keys.filter(k => !seen.has(product(k).label) && seen.add(product(k).label));
+  const option = k => el("option", { value: k }, `${product(k).label} · ${eur(product(k).price)}`);
+  const group = (label, keys) => keys.length ? el("optgroup", { label }, keys.map(option)) : null;
+  const foodKeys = fresh([
+    ...Object.keys(FOODS).filter(k => product(k) && (EATEN.has(k) || FOODS[k].grounding === "CONFIRMED")),
+    ...Object.keys(CONS.vegPacks).map(k => "veg:" + k),
+  ]).sort((a, b) => product(a).label.localeCompare(product(b).label));
+  const adder = el("select", { class: "adder", "aria-label": "Add another product", onchange: e => { cart.set(e.target.value, 1); render(true); } }, [
+    el("option", { value: "" }, "＋ Add another product…"),
+    group("Other menus, treats, bread swaps", foodKeys),
+    group("Seasonings, coffee & sweetener (one-time)", fresh(Object.keys(CONS.spices).map(k => "spice:" + k))),
+  ]);
+
+  paintSum();
+  return [
+    picker(render),
+    el("p", { class: "note", html: inline(`**Pantry check.** Each row shows what ${days === 7 ? "**one week**" : `**${days} days**`} of menu ${d.id} eats: in grams, in pieces and in packs. Look at what you still have, then tap **+** for the packs to buy.`) }),
+    el("div", { class: "days" }, [
+      el("span", {}, ["Days to cover", el("small", {}, "7 = a week · 14 = two weeks · 2 = a weekend")]),
+      stepper(() => days, n => store.set("days", n), () => render(true), 1, 14),
+    ]),
+    el("div", { class: "seg" }, [
+      el("button", { type: "button", onclick: () => { for (const x of needs) cart.set(x.key, Math.ceil(x.need / x.pack.edible - 1e-9)); render(true); } },
+        `Empty pantry: set ${days === 7 ? "a full week" : `all ${days} days`}`),
+      el("button", { type: "button", onclick: () => { if (confirm("Clear the whole shopping list?")) { cart.clear(); render(true); } } }, "Clear the list"),
+    ]),
+    list, extra, adder,
+    el("div", { class: "cartbar" }, [el("span", {}, [sum, sub]), go]),
+    el("p", { class: "note", html: inline(`**One list for everything.** Switch the menu above and keep adding (two days of a weekend menu on top of five of another), and add a seasoning you ran out of from the **Spices** tab. Counters start at 0 and nothing is filled in for you. The shelf-life hints assume you eat this menu every day and count only what you buy now, so eat pantry stock first.`) }),
+  ];
+}
+
+/** Step 2, in the shop: the list as a checklist in aisle order. */
+function shopStore(render, needs) {
+  const lines = cart.lines();
+  if (!lines.length) {
+    return [el("p", { class: "note", html: inline("**The list is empty.** Do the pantry check first and raise the counter of everything you need to buy.") })];
+  }
+  const perDay = new Map(needs.map(x => [x.key, x.perDay]));
+  let got = store.get("got", []).filter(k => lines.some(x => x.key === k));
+  const tally = el("em"), bar = el("div", { class: "bar" }, el("i")), left = el("p", { class: "note" });
+  const card = el("div", { class: "meal" }, [el("h3", {}, [el("span", {}, `Shopping list · ${plural(lines.length, "line")}`), tally]), bar]);
+  const refresh = () => {
+    const open = lines.filter(x => !got.includes(x.key));
+    bar.style.cssText = `--pct:${1 - open.length / lines.length}`;
+    tally.textContent = `${lines.length - open.length}/${lines.length} · ${eur(cart.total(lines))}`;
+    left.innerHTML = inline(open.length
+      ? `**${eur(cart.total(open))}** still to buy · ${plural(open.length, "line")} left`
+      : `**Done** — everything is in the trolley.`);
+  };
+
+  let aisle = null, freezer = 0;
+  for (const { key, n, pack } of lines) {
+    if (pack.aisle !== aisle) { aisle = pack.aisle; card.append(el("div", { class: "aisle" }, AISLE[aisle])); }
+    const advice = keepsAdvice(key, pack, perDay.get(key), n);
+    freezer += pack.aisle === "frozen" ? n * pack.edible : advice && pack.freeze ? pastKeeps(pack, perDay.get(key), n) : 0;
+    const box = el("input", { type: "checkbox" });
+    box.checked = got.includes(key);
+    const pieces = FOODS[key]?.unit ? ` · ${amount(key, n * pack.edible)}` : "";
+    const row = el("label", { class: "check" + (box.checked ? " done" : "") }, [
+      box,
+      el("span", {}, [`${n}× ${pack.label}`, el("small", {}, `${eur(pack.price)} each${pieces}${pack.once ? " · one-time buy" : ""}`), advice ? el("small", { class: "warn" }, advice) : null]),
+      el("span", { class: "price" }, eur(n * pack.price)),
+    ]);
+    box.addEventListener("change", () => {
+      got = box.checked ? [...got, key] : got.filter(v => v !== key);
+      store.set("got", got);
+      row.classList.toggle("done", box.checked);
+      refresh();
+    });
+    card.append(row);
+  }
+  refresh();
+  return [
+    card, left,
+    freezer > 0 ? el("p", { class: "note", html: inline(`**Freezer space on arrival: ~${de(freezer / 1000)} kg** (frozen packs + what to freeze).`) }) : null,
+    el("p", { class: "note" }, "Aisle order follows a typical Aldi Süd layout; frozen last so it stays cold. To change a count, go back to the pantry check."),
+    el("button", { class: "btn", onclick: () => { store.set("got", []); render(); } }, "Untick everything"),
+    el("button", { class: "btn", onclick: () => { if (confirm("Trip done? This clears the shopping list.")) { cart.clear(); store.set("shopMode", "pantry"); render(); } } }, "Trip done: clear the list"),
+  ];
+}
+
+function viewCompare() {
+  const cols = [
+    ["Day", d => `${d.id} ${d.name}`, d => d.id],
+    ["kcal", d => String(d.macros.kcal), d => d.macros.kcal],
+    ["Prot", d => de(d.macros.protein), d => d.macros.protein],
+    ["Fib", d => de(d.macros.fiber), d => d.macros.fiber],
+    ["€/day", d => eur(d.macros.cost), d => d.macros.cost],
+    ["Δ€/mo", d => d.dt.baseline ? "—" : signed(monthDelta(d)), d => monthDelta(d)],
+  ];
+  const cur = current().id;
+  let sort = store.get("sort", 4);
+  if (!cols[sort]) sort = 4;
+  const table = el("table");
+  const draw = () => {
+    table.replaceChildren();
+    table.append(el("thead", {}, el("tr", {}, cols.map(([label], i) =>
+      el("th", { onclick: () => { sort = i; store.set("sort", i); draw(); } }, label + (sort === i ? " ▾" : ""))))));
+    const rows = [...DAYS].sort((a, b) => {
+      const va = cols[sort][2](a), vb = cols[sort][2](b);
+      return typeof va === "string" ? va.localeCompare(vb) : va - vb;
+    });
+    const body = el("tbody");
+    for (const d of rows) {
+      const tr = el("tr", { class: [d.dt.baseline && "base", d.id === cur && "cur"].filter(Boolean).join(" ") });
+      cols.forEach(([, fmt], i) => {
+        const td = el("td", i === 0 ? { class: "day", style: `--rowhue:${d.dt.hue}` } : {}, fmt(d));
+        if (i === cols.length - 1 && !d.dt.baseline) td.className = monthDelta(d) < 0 ? "neg" : "pos";
+        tr.append(td);
+      });
+      tr.addEventListener("click", () => { store.set("day", d.id); show("today"); });
+      body.append(tr);
+    }
+    table.append(body);
+  };
+  draw();
+  return [
+    el("p", { class: "note", html: inline(`Tap a column to sort, tap a row to open that day (the one in bold is open now). Every day holds ~${de(CONS.proteinTarget)}g protein inside ${CONS.kcalMin}–${CONS.kcalMax} kcal with fiber ≥${CONS.fiberMin}g.`) }),
+    table,
+    el("p", { class: "foot", html: `Prices: real Aldi Süd permanent range, scraped ${CONS.scrapedOn}. Nutrition marked INFERENCE is standard reference, not an Aldi panel. Generated from <code>data/</code> by <code>gen.mjs</code>.` }),
+  ];
+}
+
+function viewSpices() {
+  const d = current();
+  const render = () => show("spices");
+  const list = spicesFor(d.dt, CONS);
+  const total = list.reduce((s, [, x]) => s + x.price, 0);
+  const card = el("div", { class: "meal" }, [
+    el("h3", {}, [el("span", {}, `Spices for ${d.id}`), el("em", {}, `${eur(total)} once`)]),
+    ...list.map(([k, s]) => {
+      const users = DAYS.filter(o => spicesFor(o.dt, CONS).some(([j]) => j === k)).map(o => o.id).join(" ");
+      return el("div", { class: "item" }, [
+        el("span", { class: "name" }, s.label),
+        el("small", { class: "need" }, [el("b", {}, eur(s.price)), ` · ${s.note} · keeps ${s.keeps >= 365 ? Math.round(s.keeps / 365) + " yr" : s.keeps + " d"} · menus ${users}`]),
+        cartStepper("spice:" + k),
+      ]);
+    }),
+  ]);
+  return [
+    picker(render),
+    list.length ? card : el("p", { class: "note" }, "These recipes call for no seasonings."),
+    el("p", { class: "note", html: inline("**One-time buys**, not in the €/day: each pack lasts months. Run out of one? Tap **+** and it goes on the list in the **Shop** tab. Fresh **lemon** isn't sold online; vinegar covers it.") }),
+  ];
+}
+
+const TREAT_ICON = { flan: "🍮", cheesecake: "🍰" };
+
+/** Optional treats. The bread to leave out is shown for the menu picked in the Today tab only. */
+function viewTreats() {
+  const render = () => show("treats");
+  const treat = TREATS.treats.find(t => t.id === store.get("treat", "flan")) ?? TREATS.treats[0];
+  const m = macros(treat.items, FOODS);
+  const d = current();
+  const [mode, hint, from = "dinner"] = TREATS.mode[d.id];
+  const unit = FOODS[d.dt.bread].unit.name;
+  const today = el("div", { class: "meal" }, [
+    el("h3", {}, [el("span", {}, `Bread to leave out · ${d.id}`), el("em", {}, `${mode === "swap" ? "instead of" : "on top of"} ${hint} · bread from ${from}`)]),
+    ...TREATS.treats.map(t => {
+      const r = withTreat(d, t, mode, FOODS, CONS);
+      return el("div", { class: "row" }, [
+        el("i", { class: "ico", "aria-hidden": "true" }, TREAT_ICON[t.id] ?? "🍽️"),
+        el("span", {}, [t.name, el("small", {}, `${r.macros.kcal} kcal · ${de(r.macros.protein)}g protein · ${de(r.macros.fiber)}g fiber · ${eur(r.macros.cost)}/day`)]),
+        el("b", { style: r.ok ? "" : "color:var(--warn)" }, r.slices ? cutLabel(r.slices, unit) : "none"),
+      ]);
+    }),
+  ]);
+  const seg = el("div", { class: "seg" }, TREATS.treats.map(t =>
+    el("button", { class: t.id === treat.id ? "on" : "", onclick: () => { store.set("treat", t.id); render(); } }, t.name)));
+  const card = el("div", { class: "meal" }, [
+    el("h3", {}, [el("span", {}, `${treat.short}, 1 portion`), el("em", {}, `${de(m.protein)}g · ${m.kcal} kcal · ${eur(m.cost)}`)]),
+    ...treat.items.map(([k, g]) => el("div", { class: "row" }, [
+      el("i", { class: "ico", "aria-hidden": "true" }, FOOD_ICON[k] ?? "🍽️"),
+      el("span", {}, FOODS[k].label),
+      el("b", {}, qty(k, g)),
+    ])),
+    howTo(treat.recipe),
+  ]);
+  return [
+    el("p", { class: "note", html: inline(TREATS.intro) }),
+    today,
+    seg,
+    card,
+    ...treat.notes.map(n => el("details", { class: "notecard" }, [el("summary", {}, n.title), el("p", { html: inline(n.text) })])),
+  ];
+}
+
+const VIEWS = { today: viewToday, shop: viewShop, spices: viewSpices, treats: viewTreats, compare: viewCompare };
+const app = document.getElementById("app");
+const crumb = document.getElementById("crumb");
+
+/** Draw a view. `keep` holds the scroll position, for redraws caused by a control further down the page. */
+function show(view, keep = false) {
+  store.set("view", view);
+  const d = current();
+  document.documentElement.style.setProperty("--hue", d.dt.hue);
+  crumb.textContent = `${d.id} · ${d.name}`;
+  for (const b of document.querySelectorAll("nav button")) b.classList.toggle("on", b.dataset.view === view);
+  app.replaceChildren(...VIEWS[view](k => show(view, k === true)));
+  if (!keep) window.scrollTo(0, 0);
+}
+for (const b of document.querySelectorAll("nav button")) b.addEventListener("click", () => show(b.dataset.view));
+paintBadge();
+show(store.get("view", "today"));
+
+// Served over http(s): keep an offline copy, and offer the new version once a deploy has replaced the old one.
+if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+  const updating = !!navigator.serviceWorker.controller;   // false on the very first visit: nothing to replace
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!updating || document.querySelector(".update")) return;
+    document.querySelector("header").append(
+      el("button", { class: "update", onclick: () => location.reload() }, "New version downloaded · tap to load it"));
+  });
+}
+
+</script>
+</body>
+</html>
